@@ -2,6 +2,5 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Bindings for GDAL - Geospatial Data Abstraction Library
+// Package gdal provides Go bindings for GDAL.
 package gdal
-

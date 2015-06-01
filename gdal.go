@@ -1,4 +1,4 @@
-// Copyright 2011 go-gdal. All rights reserved.
+// Copyright 2015 ChaiShushan <chaishushan{AT}gmail.com>. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -13,9 +13,9 @@ package gdal
 */
 import "C"
 import (
+	_ "fmt"
 	_ "runtime"
 	"unsafe"
-	_ "fmt"
 )
 
 func init() {
@@ -30,32 +30,19 @@ func init() {
 type GDALDataType int
 
 const (
-	// Unknown or unspecified type
-	GDT_Unknown = GDALDataType(C.GDT_Unknown)
-	// Eight bit unsigned integer
-	GDT_Byte = GDALDataType(C.GDT_Byte)
-	// Sixteen bit unsigned integer
-	GDT_UInt16 = GDALDataType(C.GDT_UInt16)
-	// Sixteen bit signed integer
-	GDT_Int16 = GDALDataType(C.GDT_Int16)
-	// Thirty two bit unsigned integer
-	GDT_UInt32 = GDALDataType(C.GDT_UInt32)
-	// Thirty two bit signed integer
-	GDT_Int32 = GDALDataType(C.GDT_Int32)
-	// Thirty two bit floating point
-	GDT_Float32 = GDALDataType(C.GDT_Float32)
-	// Sixty four bit floating point
-	GDT_Float64 = GDALDataType(C.GDT_Float64)
-	// Complex Int16
-	GDT_CInt16 = GDALDataType(C.GDT_CInt16)
-	// Complex Int32
-	GDT_CInt32 = GDALDataType(C.GDT_CInt32)
-	// Complex Float32
-	GDT_CFloat32 = GDALDataType(C.GDT_CFloat32)
-	// Complex Float64
-	GDT_CFloat64 = GDALDataType(C.GDT_CFloat64)
-	// maximum type # + 1
-	GDT_TypeCount = GDALDataType(C.GDT_TypeCount)
+	GDT_Unknown   = GDALDataType(C.GDT_Unknown)   // Unknown or unspecified type
+	GDT_Byte      = GDALDataType(C.GDT_Byte)      // Eight bit unsigned integer
+	GDT_UInt16    = GDALDataType(C.GDT_UInt16)    // Sixteen bit unsigned integer
+	GDT_Int16     = GDALDataType(C.GDT_Int16)     // Sixteen bit signed integer
+	GDT_UInt32    = GDALDataType(C.GDT_UInt32)    // Thirty two bit unsigned integer
+	GDT_Int32     = GDALDataType(C.GDT_Int32)     // Thirty two bit signed integer
+	GDT_Float32   = GDALDataType(C.GDT_Float32)   // Thirty two bit floating point
+	GDT_Float64   = GDALDataType(C.GDT_Float64)   // Sixty four bit floating point
+	GDT_CInt16    = GDALDataType(C.GDT_CInt16)    // Complex Int16
+	GDT_CInt32    = GDALDataType(C.GDT_CInt32)    // Complex Int32
+	GDT_CFloat32  = GDALDataType(C.GDT_CFloat32)  // Complex Float32
+	GDT_CFloat64  = GDALDataType(C.GDT_CFloat64)  // Complex Float64
+	GDT_TypeCount = GDALDataType(C.GDT_TypeCount) // maximum type # + 1
 )
 
 // Get data type size in bits.
@@ -81,15 +68,14 @@ func GDALDataTypeUnion(dataTypeA, dataTypeB GDALDataType) GDALDataType {
 	)
 }
 
-
 // status of the asynchronous stream
 type GDALAsyncStatusType int
 
 const (
-	GARIO_PENDING = GDALAsyncStatusType(C.GARIO_PENDING)
-	GARIO_UPDATE = GDALAsyncStatusType(C.GARIO_UPDATE)
-	GARIO_ERROR = GDALAsyncStatusType(C.GARIO_ERROR)
-	GARIO_COMPLETE = GDALAsyncStatusType(C.GARIO_COMPLETE)
+	GARIO_PENDING   = GDALAsyncStatusType(C.GARIO_PENDING)
+	GARIO_UPDATE    = GDALAsyncStatusType(C.GARIO_UPDATE)
+	GARIO_ERROR     = GDALAsyncStatusType(C.GARIO_ERROR)
+	GARIO_COMPLETE  = GDALAsyncStatusType(C.GARIO_COMPLETE)
 	GARIO_TypeCount = GDALAsyncStatusType(C.GARIO_TypeCount)
 )
 
@@ -106,64 +92,40 @@ func GDALGetAsyncStatusTypeByName(statusTypeName string) GDALAsyncStatusType {
 type GDALAccess int
 
 const (
-	// Read only (no update) access
-	GA_ReadOnly = GDALAccess(C.GA_ReadOnly)
-	// Read/write access.
-	GA_Update = GDALAccess(C.GA_Update)
+	GA_ReadOnly = GDALAccess(C.GA_ReadOnly) // Read only (no update) access
+	GA_Update   = GDALAccess(C.GA_Update)   // Read/write access.
 )
-
 
 // Read/Write flag for RasterIO() method
 type GDALRWFlag int
 
 const (
-	// Read data
-	GF_Read = GDALRWFlag(C.GF_Read)
-	// Write data
-	GF_Write = GDALRWFlag(C.GF_Write)
+	GF_Read  = GDALRWFlag(C.GF_Read)  // Read data
+	GF_Write = GDALRWFlag(C.GF_Write) // Write data
 )
-
 
 // Types of color interpretation for raster bands.
 type GDALColorInterp int
 
 const (
-	GCI_Undefined = GDALColorInterp(C.GCI_Undefined)
-
-	// Greyscale
-	GCI_GrayIndex = GDALColorInterp(C.GCI_GrayIndex)
-	// Paletted (see associated color table)
-	GCI_PaletteIndex = GDALColorInterp(C.GCI_PaletteIndex)
-	// Red band of RGBA image
-	GCI_RedBand = GDALColorInterp(C.GCI_RedBand)
-	// Green band of RGBA image
-	GCI_GreenBand = GDALColorInterp(C.GCI_GreenBand)
-	// Blue band of RGBA image
-	GCI_BlueBand = GDALColorInterp(C.GCI_BlueBand)
-	// Alpha (0=transparent, 255=opaque)
-	GCI_AlphaBand = GDALColorInterp(C.GCI_AlphaBand)
-	// Hue band of HLS image
-	GCI_HueBand = GDALColorInterp(C.GCI_HueBand)
-	// Saturation band of HLS image
-	GCI_SaturationBand = GDALColorInterp(C.GCI_SaturationBand)
-	// Lightness band of HLS image
-	GCI_LightnessBand = GDALColorInterp(C.GCI_LightnessBand)
-	// Cyan band of CMYK image
-	GCI_CyanBand = GDALColorInterp(C.GCI_CyanBand)
-	// Magenta band of CMYK image
-	GCI_MagentaBand = GDALColorInterp(C.GCI_MagentaBand)
-	// Yellow band of CMYK image
-	GCI_YellowBand = GDALColorInterp(C.GCI_YellowBand)
-	// Black band of CMLY image
-	GCI_BlackBand = GDALColorInterp(C.GCI_BlackBand)
-	// Y Luminance
-	GCI_YCbCr_YBand = GDALColorInterp(C.GCI_YCbCr_YBand)
-	// Cb Chroma
-	GCI_YCbCr_CbBand = GDALColorInterp(C.GCI_YCbCr_CbBand)
-	// Cr Chroma
-	GCI_YCbCr_CrBand = GDALColorInterp(C.GCI_YCbCr_CrBand)
-	// Max current value
-	GCI_Max = GDALColorInterp(C.GCI_Max)
+	GCI_Undefined      = GDALColorInterp(C.GCI_Undefined)      // Undefined
+	GCI_GrayIndex      = GDALColorInterp(C.GCI_GrayIndex)      // Greyscale
+	GCI_PaletteIndex   = GDALColorInterp(C.GCI_PaletteIndex)   // Paletted (see associated color table)
+	GCI_RedBand        = GDALColorInterp(C.GCI_RedBand)        // Red band of RGBA image
+	GCI_GreenBand      = GDALColorInterp(C.GCI_GreenBand)      // Green band of RGBA image
+	GCI_BlueBand       = GDALColorInterp(C.GCI_BlueBand)       // Blue band of RGBA image
+	GCI_AlphaBand      = GDALColorInterp(C.GCI_AlphaBand)      // Alpha (0=transparent, 255=opaque)
+	GCI_HueBand        = GDALColorInterp(C.GCI_HueBand)        // Hue band of HLS image
+	GCI_SaturationBand = GDALColorInterp(C.GCI_SaturationBand) // Saturation band of HLS image
+	GCI_LightnessBand  = GDALColorInterp(C.GCI_LightnessBand)  // Lightness band of HLS image
+	GCI_CyanBand       = GDALColorInterp(C.GCI_CyanBand)       // Cyan band of CMYK image
+	GCI_MagentaBand    = GDALColorInterp(C.GCI_MagentaBand)    // Magenta band of CMYK image
+	GCI_YellowBand     = GDALColorInterp(C.GCI_YellowBand)     // Yellow band of CMYK image
+	GCI_BlackBand      = GDALColorInterp(C.GCI_BlackBand)      // Black band of CMLY image
+	GCI_YCbCr_YBand    = GDALColorInterp(C.GCI_YCbCr_YBand)    // Y Luminance
+	GCI_YCbCr_CbBand   = GDALColorInterp(C.GCI_YCbCr_CbBand)   // Cb Chroma
+	GCI_YCbCr_CrBand   = GDALColorInterp(C.GCI_YCbCr_CrBand)   // Cr Chroma
+	GCI_Max            = GDALColorInterp(C.GCI_Max)            // Max current value
 )
 
 func GDALGetColorInterpretationName(colorInterp GDALColorInterp) string {
@@ -175,19 +137,14 @@ func GDALGetColorInterpretationByName(pszName string) GDALColorInterp {
 	return GDALColorInterp(C.GDALGetColorInterpretationByName(name))
 }
 
-
 // Types of color interpretations for a GDALColorTable.
 type GDALPaletteInterp int
 
 const (
-	// Grayscale (in GDALColorEntry.c1)
-	GPI_Gray = GDALPaletteInterp(C.GPI_Gray)
-	// Red, Green, Blue and Alpha in (in c1, c2, c3 and c4)
-	GPI_RGB = GDALPaletteInterp(C.GPI_RGB)
-	// Cyan, Magenta, Yellow and Black (in c1, c2, c3 and c4)
-	GPI_CMYK = GDALPaletteInterp(C.GPI_CMYK)
-	// Hue, Lightness and Saturation (in c1, c2, and c3)
-	GPI_HLS = GDALPaletteInterp(C.GPI_HLS)
+	GPI_Gray = GDALPaletteInterp(C.GPI_Gray) // Grayscale (in GDALColorEntry.c1)
+	GPI_RGB  = GDALPaletteInterp(C.GPI_RGB)  // Red, Green, Blue and Alpha in (in c1, c2, c3 and c4)
+	GPI_CMYK = GDALPaletteInterp(C.GPI_CMYK) // Cyan, Magenta, Yellow and Black (in c1, c2, c3 and c4)
+	GPI_HLS  = GDALPaletteInterp(C.GPI_HLS)  // Hue, Lightness and Saturation (in c1, c2, and c3)
 )
 
 func GDALGetPaletteInterpretationName(paletteInterp GDALPaletteInterp) string {
@@ -196,12 +153,11 @@ func GDALGetPaletteInterpretationName(paletteInterp GDALPaletteInterp) string {
 	)
 }
 
-
 // "well known" metadata items.
 const (
 	GDALMD_AREA_OR_POINT = string(C.GDALMD_AREA_OR_POINT)
-	GDALMD_AOP_AREA = string(C.GDALMD_AOP_AREA)
-	GDALMD_AOP_POINT = string(C.GDALMD_AOP_POINT)
+	GDALMD_AOP_AREA      = string(C.GDALMD_AOP_AREA)
+	GDALMD_AOP_POINT     = string(C.GDALMD_AOP_POINT)
 )
 
 /* -------------------------------------------------------------------- */
@@ -276,8 +232,8 @@ func GDALDestroyScaledProgress(pData unsafe.Pointer) {
 // -----------------------------------------------------------------------
 
 type goGDALProgressFuncProxyArgs struct {
-	progresssFunc	GDALProgressFunc
-	pData		interface{}
+	progresssFunc GDALProgressFunc
+	pData         interface{}
 }
 
 //export goGDALProgressFuncProxyA
@@ -295,16 +251,16 @@ func goGDALProgressFuncProxyA(dfComplete C.double, pszMessage *C.char, pData *in
 /* ==================================================================== */
 
 const (
-	GDAL_DMD_LONGNAME = string(C.GDAL_DMD_LONGNAME)
-	GDAL_DMD_HELPTOPIC = string(C.GDAL_DMD_HELPTOPIC)
-	GDAL_DMD_MIMETYPE = string(C.GDAL_DMD_MIMETYPE)
-	GDAL_DMD_EXTENSION = string(C.GDAL_DMD_EXTENSION)
+	GDAL_DMD_LONGNAME           = string(C.GDAL_DMD_LONGNAME)
+	GDAL_DMD_HELPTOPIC          = string(C.GDAL_DMD_HELPTOPIC)
+	GDAL_DMD_MIMETYPE           = string(C.GDAL_DMD_MIMETYPE)
+	GDAL_DMD_EXTENSION          = string(C.GDAL_DMD_EXTENSION)
 	GDAL_DMD_CREATIONOPTIONLIST = string(C.GDAL_DMD_CREATIONOPTIONLIST)
-	GDAL_DMD_CREATIONDATATYPES = string(C.GDAL_DMD_CREATIONDATATYPES)
+	GDAL_DMD_CREATIONDATATYPES  = string(C.GDAL_DMD_CREATIONDATATYPES)
 
-	GDAL_DCAP_CREATE = string(C.GDAL_DCAP_CREATE)
+	GDAL_DCAP_CREATE     = string(C.GDAL_DCAP_CREATE)
 	GDAL_DCAP_CREATECOPY = string(C.GDAL_DCAP_CREATECOPY)
-	GDAL_DCAP_VIRTUALIO = string(C.GDAL_DCAP_VIRTUALIO)
+	GDAL_DCAP_VIRTUALIO  = string(C.GDAL_DCAP_VIRTUALIO)
 )
 
 func gdalAllRegister() {
@@ -355,7 +311,7 @@ func GDALCreateCopy(
 	}
 	opts[len(opts)-1] = (*C.char)(unsafe.Pointer(nil))
 
-	arg := &goGDALProgressFuncProxyArgs {
+	arg := &goGDALProgressFuncProxyArgs{
 		pfnProgress, pProgressData,
 	}
 
@@ -369,49 +325,34 @@ func GDALCreateCopy(
 	return GDALDatasetH(h)
 }
 
-
-
-
-
 /* ==================================================================== */
 /*      GDAL_GCP                                                        */
 /* ==================================================================== */
-
 
 /* ==================================================================== */
 /*      major objects (dataset, and, driver, drivermanager).            */
 /* ==================================================================== */
 
-
-
 /* ==================================================================== */
 /*      GDALDataset class ... normally this represents one file.        */
 /* ==================================================================== */
-
 
 /* ==================================================================== */
 /*      GDALRasterBand ... one band/channel in a dataset.               */
 /* ==================================================================== */
 
-
 /* ==================================================================== */
 /*     GDALAsyncReader                                                  */
 /* ==================================================================== */
-
 
 /* ==================================================================== */
 /*      Color tables.                                                   */
 /* ==================================================================== */
 
-
 /* ==================================================================== */
 /*      Raster Attribute Table						*/
 /* ==================================================================== */
 
-
 /* ==================================================================== */
 /*      GDAL Cache Management                                           */
 /* ==================================================================== */
-
-
-

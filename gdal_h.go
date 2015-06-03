@@ -4,10 +4,7 @@
 
 package gdal
 
-/*
-#include "capi.h"
-#include "gdal.h"
-*/
+//#include "cgo_gdal.h"
 import "C"
 import (
 	_ "fmt"
@@ -316,7 +313,7 @@ func GDALCreateCopy(
 		C.GDALDriverH(hDriver), name,
 		C.GDALDatasetH(hSrcDS),
 		C.int(bStrict), (**C.char)(unsafe.Pointer(&opts[0])),
-		C.goGDALProgressFuncProxyB(),
+		C.cgoGDALProgressFuncProxyB(),
 		unsafe.Pointer(arg),
 	)
 	return GDALDatasetH(h)

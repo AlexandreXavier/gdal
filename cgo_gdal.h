@@ -2,10 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-#ifndef GO_GDAL_H
-#define GO_GDAL_H
+#ifndef CGO_GDAL_H
+#define CGO_GDAL_H
 
 #include <gdal.h>
+#include <gdal_version.h>
 #include <cpl_conv.h>
 
 #ifdef __cplusplus
@@ -13,10 +14,10 @@ extern "C" {
 #endif
 
 // transform GDALProgressFunc to go func
-GDALProgressFunc goGDALProgressFuncProxyB();
+GDALProgressFunc cgoGDALProgressFuncProxyB();
 
 #ifdef __cplusplus
 }
 #endif
-#endif	// GO_GDAL_H
+#endif	// CGO_GDAL_H
 

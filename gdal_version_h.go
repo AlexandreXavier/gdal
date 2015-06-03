@@ -4,9 +4,7 @@
 
 package gdal
 
-/*
-#include <gdal_version.h>
-*/
+//#include "cgo_gdal.h"
 import "C"
 
 const (

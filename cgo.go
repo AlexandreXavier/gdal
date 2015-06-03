@@ -13,6 +13,6 @@ package gdal
 
 #cgo linux pkg-config: gdal
 
-#include "gdal.h"
+#include "cgo_gdal.h"
 */
 import "C"

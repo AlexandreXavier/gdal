@@ -13,8 +13,5 @@ import (
 )
 
 func main() {
-	fmt.Printf("GO-GDAL Info\n")
-	fmt.Printf("Version Num: %d\n", gdal.GDAL_VERSION_NUM)
-	fmt.Printf("Release Data: %d\n", gdal.GDAL_RELEASE_DATE)
-	fmt.Printf("Release Name: %s\n", gdal.GDAL_RELEASE_NAME)
+	fmt.Printf("GDAL %d.%d.%d\n", gdal.MajorVersion, gdal.MinorVersion, gdal.RevVersion)
 }

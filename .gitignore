@@ -1,7 +1,9 @@
-/internal/gdal-1.11.2
+internal/gdal-1.11.2
 
-./gdal-cgo-win32.dll
-./gdal-cgo-win64.dll
+gdal-cgo-win32.dll
+gdal-cgo-win64.dll
 
-./libgdal-cgo-386.a
-./libgdal-cgo-amd64.a
+libgdal-cgo-386.a
+libgdal-cgo-amd64.a
+
+hello.exe

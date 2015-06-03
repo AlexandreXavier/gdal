@@ -2,10 +2,8 @@
 
 ## Install
 
-1. go get -d github.com/chai2010/gdal
-2. go generate github.com/chai2010/gdal
-3. go install github.com/chai2010/gdal
-4. go run hello.go
+1. go get github.com/chai2010/gdal
+2. go run hello.go
 
 BUGS
 ====

@@ -4,12 +4,15 @@
 
 package gdal
 
-const (
-	MajorVersion = 1  // GDAL_VERSION_MAJOR
-	MinorVersion = 11 // GDAL_VERSION_MINOR
-	RevVersion   = 2  // GDAL_VERSION_REV
-	BuildVersion = 0  // GDAL_VERSION_BUILD
+//#include "cgo_gdal.h"
+import "C"
 
-	ReleaseDate = 20150210 // GDAL_RELEASE_DATE
-	ReleaseName = "1.11.2" // GDAL_RELEASE_NAME
+const (
+	MajorVersion = int(C.GDAL_VERSION_MAJOR)
+	MinorVersion = int(C.GDAL_VERSION_MINOR)
+	RevVersion   = int(C.GDAL_VERSION_REV)
+	BuildVersion = int(C.GDAL_VERSION_BUILD)
+
+	ReleaseDate = int(C.GDAL_RELEASE_DATE)
+	ReleaseName = string(C.GDAL_RELEASE_NAME)
 )

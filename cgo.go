@@ -11,6 +11,7 @@ package gdal
 #cgo windows,amd64 LDFLAGS: -L${SRCDIR} -l"gdal-cgo-amd64"
 #cgo windows,386 LDFLAGS: -L${SRCDIR} -l"gdal-cgo-386"
 
+#cgo darwin pkg-config: gdal
 #cgo linux pkg-config: gdal
 
 #include "cgo_gdal.h"

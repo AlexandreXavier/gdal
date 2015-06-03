@@ -1,22 +1,15 @@
+# Go bindings for GDAL
+
 ## Install
 
-Linux
+1. go get -d github.com/chai2010/gdal
+2. go generate github.com/chai2010/gdal
+3. go install github.com/chai2010/gdal
+4. go run hello.go
 
-1. install Go1 and GDAL
-2. go get github.com/chai2010/gdal
-3. go run hello.go
+BUGS
+====
 
-Windows
+Report bugs to <chaishushan@gmail.com>.
 
-1. install Go1 and MinGW
-2. build gdal-1.9.1 with MinGW
-   cd gdal-1.9.1 dir
-   ./configure
-   make
-   make install
-3. copy gdal *.h/*.a/*.dll to MinGW dir 
-   MinGW\msys\1.0\local\bin\*.dll -> ${MinGWRoot}\*.dll
-   MinGW\msys\1.0\local\include   -> ${MinGWRoot}\include
-   MinGW\msys\1.0\local\lib\*lib  -> ${MinGWRoot}\lib\*lib
-4. go get github.com/chai2010/gdal
-5. go run hello.go
+Thanks!

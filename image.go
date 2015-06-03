@@ -104,12 +104,20 @@ func (p *Image) At(x, y int) color.Color {
 	return m.At(x, y)
 }
 
+func (p *Image) ColorAt(x, y int) interface{} {
+	panic("TODO")
+}
+
 func (p *Image) Set(x, y int, c color.Color) {
 	m, err := p.asInternalImage()
 	if err != nil {
 		return
 	}
 	m.Set(x, y, c)
+}
+
+func (p *Image) SetColor(x, y int, c interface{}) {
+	panic("TODO")
 }
 
 func (p *Image) PixOffset(x, y int) int {

@@ -70,6 +70,9 @@ type Image struct {
 	Channels int
 	// Uint8/Uint16/Int32/Int64/Float32/Float64
 	DataType reflect.Kind
+
+	// Affine transformation coefficients
+	GeoTransform [6]float64
 }
 
 func NewImage(r image.Rectangle, channels int, dataType reflect.Kind) *Image {

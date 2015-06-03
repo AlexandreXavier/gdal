@@ -9,7 +9,14 @@ import (
 	"io"
 )
 
+type Options struct {
+	DriverName string
+	Projection string
+	Transform  [6]float64
+	ExtOptions map[string]string
+}
+
 // Encode writes the image m to w in GDAL format.
-func Encode(w io.Writer, m image.Image, opt map[string]string) error {
+func Encode(w io.Writer, m image.Image, opt *Options) error {
 	panic("TODO")
 }

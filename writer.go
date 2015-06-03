@@ -9,7 +9,7 @@ import (
 	"io"
 )
 
-// Encode writes the image m to w in BMP format.
-func Encode(w io.Writer, m image.Image) error {
+// Encode writes the image m to w in GDAL format.
+func Encode(w io.Writer, m image.Image, opt map[string]string) error {
 	panic("TODO")
 }

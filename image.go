@@ -104,7 +104,7 @@ func (p *Image) At(x, y int) color.Color {
 	return m.At(x, y)
 }
 
-func (p *Image) ColorAt(x, y int) interface{} {
+func (p *Image) PixelAt(x, y int) interface{} {
 	panic("TODO")
 }
 
@@ -116,7 +116,7 @@ func (p *Image) Set(x, y int, c color.Color) {
 	m.Set(x, y, c)
 }
 
-func (p *Image) SetColor(x, y int, c interface{}) {
+func (p *Image) SetPixel(x, y int, c interface{}) {
 	panic("TODO")
 }
 

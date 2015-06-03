@@ -5,12 +5,14 @@
 package gdal
 
 /*
-#cgo windows CFLAGS: -I./. -fno-stack-check -fno-stack-protector -mno-stack-arg-probe
+#cgo windows,amd64 CFLAGS: -I./internal/build-windows_amd64/include
+#cgo windows,386 CFLAGS: -I./internal/build-windows_386/include
+
 #cgo windows,amd64 LDFLAGS: -L${SRCDIR} -l"gdal-cgo-amd64"
 #cgo windows,386 LDFLAGS: -L${SRCDIR} -l"gdal-cgo-386"
 
 #cgo linux pkg-config: gdal
 
-#include "capi.h"
+#include "gdal.h"
 */
 import "C"

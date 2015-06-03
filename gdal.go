@@ -2,16 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build ingore
-
 package gdal
 
 /*
-#include "go_gdal.h"
-
-#cgo linux  pkg-config: gdal
-#cgo darwin pkg-config: gdal
-#cgo windows LDFLAGS: -lgdal.dll
+#include "capi.h"
+#include "gdal.h"
 */
 import "C"
 import (

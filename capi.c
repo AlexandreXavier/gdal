@@ -3,5 +3,19 @@
 // license that can be found in the LICENSE file.
 
 #include "./capi.h"
+#include "_cgo_export.h"
 
-// export GDAL API
+#include <cpl_conv.h>
+
+static
+int goGDALProgressFuncProxyB_(
+	double dfComplete, const char *pszMessage, void *pProgressArg
+) {
+	GoInterface* args = (GoInterface*)pProgressArg;
+	GoInt rv = goGDALProgressFuncProxyA(dfComplete, (char*)pszMessage, args);
+	return (int)rv;
+}
+
+GDALProgressFunc goGDALProgressFuncProxyB() {
+	return goGDALProgressFuncProxyB_;
+}

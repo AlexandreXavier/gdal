@@ -5,9 +5,15 @@
 #ifndef GO_GDAL_H
 #define GO_GDAL_H
 
+#include <gdal.h>
+#include <cpl_conv.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// transform GDALProgressFunc to go func
+GDALProgressFunc goGDALProgressFuncProxyB();
 
 #ifdef __cplusplus
 }

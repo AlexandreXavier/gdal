@@ -8,50 +8,7 @@ cd %~dp0
 setlocal
 
 :: ----------------------------------------------------------------------------
-:::: Setup MSVC
-::
-:::: VS2010
-::if not "x%VS100COMNTOOLS%" == "x" (
-::	echo Setup VS2010 Win32 ...
-::	call "%VS100COMNTOOLS%\..\..\VC\vcvarsall.bat"
-::	goto build
-::)
-::
-:::: VS2012
-::if not "x%VS110COMNTOOLS%" == "x" (
-::	echo Setup VS2012 Win32 ...
-::	call "%VS110COMNTOOLS%\..\..\VC\vcvarsall.bat"
-::	goto build
-::)
-::
-:::: VS2013
-::if not "x%VS120COMNTOOLS%" == "x" (
-::	echo Setup VS2013 Win32 ...
-::	call "%VS120COMNTOOLS%\..\..\VC\vcvarsall.bat"
-::	goto build
-::)
-::
-:::build
-
-:: ----------------------------------------------------------------------------
-
-::mkdir zz_msvc_386
-::cd zz_msvc_386
-::
-::cmake ..^
-::  -G "NMake Makefiles"^
-::  -DCMAKE_BUILD_TYPE=release^
-::  -DCMAKE_INSTALL_PREFIX=..^
-::  ^
-::  -DCMAKE_C_FLAGS_DEBUG="/MTd /Zi /Od /Ob0 /RTC1"^
-::  -DCMAKE_CXX_FLAGS_DEBUG="/MTd /Zi /Od /Ob0 /RTC1"^
-::  ^
-::  -DCMAKE_C_FLAGS_RELEASE="/MT /O2 /Ob2 /DNDEBUG"^
-::  -DCMAKE_CXX_FLAGS_RELEASE="/MT /O2 /Ob2 /DNDEBUG"^
-::  ^
-::  -DCMAKE_EXE_LINKER_FLAGS="/MANIFEST:NO"
-::nmake install
-::cd ..
+:: generate libgdal-cgo-xxx.a for dll
 
 dlltool -dllname leveldb-cgo-win32.dll --def leveldb-cgo-win32.def --output-lib libleveldb-cgo-win32.a
 copy leveldb-cgo-win32.dll ..\..\..\bin

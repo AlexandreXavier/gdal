@@ -5,21 +5,19 @@
 package gdal
 
 import (
+	"fmt"
 	"image"
-	"io"
 )
 
-// Decode reads a GDAL image from r and returns it as an image.Image.
-func Decode(r io.Reader) (image.Image, error) {
-	panic("TODO")
+// Load reads a GDAL image from file and returns it as an image.Image.
+func Load(filename string) (m image.Image, err error) {
+	err = fmt.Errorf("gdal: Load, TODO")
+	return
 }
 
-// DecodeConfig returns the color model and dimensions of a GDAL image without
+// LoadConfig returns the color model and dimensions of a GDAL image without
 // decoding the entire image.
-func DecodeConfig(r io.Reader) (image.Config, error) {
-	panic("TODO")
-}
-
-func init() {
-	image.RegisterFormat("gdal", "????", Decode, DecodeConfig)
+func LoadConfig(filename string) (cfg image.Config, err error) {
+	err = fmt.Errorf("gdal: LoadConfig, TODO")
+	return
 }

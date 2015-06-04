@@ -5,8 +5,8 @@
 package gdal
 
 import (
+	"fmt"
 	"image"
-	"io"
 )
 
 type Options struct {
@@ -17,6 +17,6 @@ type Options struct {
 }
 
 // Encode writes the image m to w in GDAL format.
-func Encode(w io.Writer, m image.Image, opt *Options) error {
-	panic("TODO")
+func Save(filename string, m image.Image, opt *Options) error {
+	return fmt.Errorf("gdal: Save, TODO")
 }

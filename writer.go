@@ -9,8 +9,11 @@ import (
 	"image"
 )
 
+// GDAL Raster Formats
+//
+// See http://www.gdal.org/formats_list.html
 type Options struct {
-	DriverName string
+	DriverName string // Default use GTiff
 	Projection string
 	Transform  [6]float64
 	ExtOptions map[string]string

@@ -1,9 +1,11 @@
 # Go bindings for GDAL
 
+PkgDoc: [http://godoc.org/github.com/chai2010/gdal](http://godoc.org/github.com/chai2010/gdal)
+
 ## Install
 
-1. go get github.com/chai2010/gdal
-2. go run hello.go
+1. `go get github.com/chai2010/gdal`
+2. `go run hello.go`
 
 ## Example
 

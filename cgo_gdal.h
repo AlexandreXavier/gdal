@@ -5,6 +5,8 @@
 #ifndef CGO_GDAL_H
 #define CGO_GDAL_H
 
+#include <stdint.h>
+
 #include <gdal.h>
 #include <gdal_version.h>
 #include <cpl_conv.h>

@@ -23,6 +23,7 @@ type Options struct {
 }
 
 type Image struct {
+	Filename string
 	Width    int
 	Height   int
 	Channels int
@@ -30,6 +31,8 @@ type Image struct {
 	Opt      *Options
 
 	poDataset C.GDALDatasetH
+	cBuf      *C.uint8_t
+	cBufLen   int
 }
 
 func OpenImage(filename string, readOnly bool) (m *Image, err error) {
@@ -49,6 +52,7 @@ func OpenImage(filename string, readOnly bool) (m *Image, err error) {
 		return
 	}
 
+	m.Filename = filename
 	m.Width = int(C.GDALGetRasterXSize(m.poDataset))
 	m.Height = int(C.GDALGetRasterYSize(m.poDataset))
 	m.Channels = int(C.GDALGetRasterCount(m.poDataset))
@@ -69,7 +73,50 @@ func OpenImage(filename string, readOnly bool) (m *Image, err error) {
 }
 
 func CreateImage(filename string, width, height, channels int, dataType DataType, opt *Options) (m *Image, err error) {
-	err = fmt.Errorf("gdal: CreateImage, TODO")
+	cname := C.CString(filename)
+	defer C.free(unsafe.Pointer(cname))
+
+	m = &Image{
+		Filename: filename,
+		Width:    width,
+		Height:   height,
+		Channels: channels,
+		DataType: dataType,
+		Opt:      new(Options),
+	}
+
+	if opt != nil {
+		*m.Opt = *opt
+		m.Opt.ExtOptions = make(map[string]string)
+		if len(opt.ExtOptions) != 0 {
+			for k, v := range opt.ExtOptions {
+				m.Opt.ExtOptions[k] = v
+			}
+		}
+	}
+	if m.Opt.DriverName == "" {
+		m.Opt.DriverName = getDriverName(filename)
+	}
+
+	cDriverName := C.CString(m.Opt.DriverName)
+	defer C.free(unsafe.Pointer(cDriverName))
+
+	poDriver := C.GDALGetDriverByName(cDriverName)
+	if poDriver == nil {
+		err = fmt.Errorf("gdal: CreateImage(%q) failed.", filename)
+		return
+	}
+
+	// TODO: support ExtOpt
+	m.poDataset = C.GDALCreate(poDriver, cname,
+		C.int(width), C.int(height), C.int(channels),
+		C.GDALDataType(dataType), nil,
+	)
+	if m.poDataset == nil {
+		err = fmt.Errorf("gdal: CreateImage(%q) failed.", filename)
+		return
+	}
+
 	return
 }
 
@@ -78,13 +125,70 @@ func (p *Image) Close() error {
 		C.GDALClose(p.poDataset)
 		p.poDataset = nil
 	}
+	if p.cBuf != nil {
+		C.free(unsafe.Pointer(p.cBuf))
+		p.cBuf = nil
+	}
+	*p = Image{}
 	return nil
 }
 
 func (p *Image) Read(r image.Rectangle, data []byte, stride int) error {
-	return fmt.Errorf("gdal: Image.Read, TODO")
+	pixelSize := p.Channels * p.DataType.Depth() / 8
+	if stride <= 0 {
+		stride = r.Dx() * pixelSize
+	}
+	if n := r.Dy() * stride; p.cBufLen < n {
+		if p.cBuf != nil {
+			C.free(unsafe.Pointer(p.cBuf))
+			p.cBuf = nil
+		}
+		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
+		p.cBufLen = n
+	}
+
+	for nBandId := 0; nBandId < p.Channels; nBandId++ {
+		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
+		cErr := C.GDALRasterIO(pBand, C.GF_Read,
+			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
+			unsafe.Pointer(p.cBuf), C.int(r.Dx()), C.int(r.Dy()),
+			C.GDALDataType(p.DataType), C.int(pixelSize),
+			C.int(stride),
+		)
+		if cErr != C.CE_None {
+			return fmt.Errorf("gdal: Image.Read(%q) failed.", p.Filename)
+		}
+	}
+
+	return nil
 }
 
 func (p *Image) Write(r image.Rectangle, data []byte, stride int) error {
-	return fmt.Errorf("gdal: Image.Write, TODO")
+	pixelSize := p.Channels * p.DataType.Depth() / 8
+	if stride <= 0 {
+		stride = r.Dx() * pixelSize
+	}
+	if n := r.Dy() * stride; p.cBufLen < n {
+		if p.cBuf != nil {
+			C.free(unsafe.Pointer(p.cBuf))
+			p.cBuf = nil
+		}
+		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
+		p.cBufLen = n
+	}
+
+	for nBandId := 0; nBandId < p.Channels; nBandId++ {
+		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
+		cErr := C.GDALRasterIO(pBand, C.GF_Write,
+			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
+			unsafe.Pointer(p.cBuf), C.int(r.Dx()), C.int(r.Dy()),
+			C.GDALDataType(p.DataType), C.int(pixelSize),
+			C.int(stride),
+		)
+		if cErr != C.CE_None {
+			return fmt.Errorf("gdal: Image.Read(%q) failed.", p.Filename)
+		}
+	}
+
+	return nil
 }

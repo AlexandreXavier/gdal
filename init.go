@@ -4,6 +4,9 @@
 
 package gdal
 
+//#include "cgo_gdal.h"
+import "C"
+
 func init() {
-	gdalAllRegister()
+	C.GDALAllRegister()
 }

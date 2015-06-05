@@ -18,7 +18,7 @@ func (c Pixel) RGBA() (r, g, b, a uint32) {
 	return
 }
 
-func ColorModelFunc(channels int, dataType DataType) color.Model {
+func ColorModel(channels int, dataType DataType) color.Model {
 	return color.ModelFunc(func(c color.Color) color.Color {
 		_ = channels
 		_ = dataType

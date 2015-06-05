@@ -150,7 +150,7 @@ func (p *Image) Bounds() image.Rectangle {
 }
 
 func (p *Image) ColorModel() color.Model {
-	return ColorModelFunc(p.Channels, p.DataType)
+	return ColorModel(p.Channels, p.DataType)
 }
 
 func (p *Image) At(x, y int) color.Color {

@@ -17,7 +17,7 @@ func LoadConfig(filename string) (config image.Config, err error) {
 	}
 	defer f.Close()
 
-	config.ColorModel = ColorModelFunc(f.Channels, f.DataType)
+	config.ColorModel = ColorModel(f.Channels, f.DataType)
 	config.Width, config.Height = f.Width, f.Height
 	return
 }

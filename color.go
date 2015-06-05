@@ -11,7 +11,7 @@ import (
 type Pixel struct {
 	Channels int
 	DataType DataType
-	Data     []byte
+	Data     DataView
 }
 
 func (c Pixel) RGBA() (r, g, b, a uint32) {

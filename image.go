@@ -16,17 +16,14 @@ var (
 )
 
 type Image struct {
-	// Pix holds the image's pixels, as pixel values in native-endian order format. The pixel at
-	// (x, y) starts at Pix[(y-Rect.Min.Y)*Stride + (x-Rect.Min.X)*PixelSize].
-	Pix DataView
+	Rect     image.Rectangle
+	Channels int
+	DataType DataType
+	Pix      DataView
+
 	// Stride is the Pix stride (in bytes, must align with PixelSize)
 	// between vertically adjacent pixels.
 	Stride int
-	// Rect is the image's bounds.
-	Rect image.Rectangle
-
-	Channels int
-	DataType DataType
 }
 
 func NewImage(r image.Rectangle, channels int, dataType DataType) *Image {

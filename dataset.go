@@ -134,7 +134,7 @@ func (p *Dataset) Close() error {
 }
 
 func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
-	pixelSize := p.Channels * p.DataType.Depth() / 8
+	pixelSize := p.Channels * p.DataType.ByteSize()
 	if stride <= 0 {
 		stride = r.Dx() * pixelSize
 	}
@@ -150,12 +150,14 @@ func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 	if p.cBuf == nil {
 		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
 	}
+
+	cBuf := ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)]
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
 		cErr := C.GDALRasterIO(pBand, C.GF_Read,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(p.cBuf), C.int(r.Dx()), C.int(r.Dy()),
+			unsafe.Pointer(&cBuf[nBandId*p.DataType.ByteSize()]), C.int(r.Dx()), C.int(r.Dy()),
 			C.GDALDataType(p.DataType), C.int(pixelSize),
 			C.int(stride),
 		)
@@ -164,12 +166,12 @@ func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 		}
 	}
 
-	copy(data, ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)])
+	copy(data, cBuf)
 	return nil
 }
 
 func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
-	pixelSize := p.Channels * p.DataType.Depth() / 8
+	pixelSize := p.Channels * p.DataType.ByteSize()
 	if stride <= 0 {
 		stride = r.Dx() * pixelSize
 	}
@@ -186,19 +188,21 @@ func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
 		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
 	}
 
+	cBuf := ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)]
+	copy(cBuf, data)
+
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
 		cErr := C.GDALRasterIO(pBand, C.GF_Write,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(p.cBuf), C.int(r.Dx()), C.int(r.Dy()),
+			unsafe.Pointer(&cBuf[nBandId*p.DataType.ByteSize()]), C.int(r.Dx()), C.int(r.Dy()),
 			C.GDALDataType(p.DataType), C.int(pixelSize),
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
-			return fmt.Errorf("gdal: Dataset.Read(%q) failed.", p.Filename)
+			return fmt.Errorf("gdal: Dataset.Write(%q) failed.", p.Filename)
 		}
 	}
 
-	copy(data, ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)])
 	return nil
 }

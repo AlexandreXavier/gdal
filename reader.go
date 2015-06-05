@@ -11,7 +11,7 @@ import (
 // LoadConfig returns the color model and dimensions of a GDAL image without
 // decoding the entire image.
 func LoadConfig(filename string) (config image.Config, err error) {
-	f, err := OpenImage(filename, false)
+	f, err := OpenImage(filename, true)
 	if err != nil {
 		return
 	}
@@ -24,7 +24,7 @@ func LoadConfig(filename string) (config image.Config, err error) {
 
 // Load reads a GDAL image from file and returns it as an image.Image.
 func Load(filename string) (m image.Image, err error) {
-	f, err := OpenImage(filename, false)
+	f, err := OpenImage(filename, true)
 	if err != nil {
 		return
 	}

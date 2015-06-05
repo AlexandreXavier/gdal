@@ -141,12 +141,14 @@ func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 	data = data[:r.Dy()*stride]
 
 	if p.cBufLen < len(data) {
+		p.cBufLen = len(data)
 		if p.cBuf != nil {
 			C.free(unsafe.Pointer(p.cBuf))
 			p.cBuf = nil
 		}
+	}
+	if p.cBuf == nil {
 		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
-		p.cBufLen = len(data)
 	}
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
@@ -174,12 +176,14 @@ func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
 	data = data[:r.Dy()*stride]
 
 	if p.cBufLen < len(data) {
+		p.cBufLen = len(data)
 		if p.cBuf != nil {
 			C.free(unsafe.Pointer(p.cBuf))
 			p.cBuf = nil
 		}
+	}
+	if p.cBuf == nil {
 		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
-		p.cBufLen = len(data)
 	}
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {

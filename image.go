@@ -50,10 +50,9 @@ func NewImageFrom(m image.Image) *Image {
 		b := m.Bounds()
 		p := NewImage(b, 1, GDT_Byte)
 
-		off0 := m.PixOffset(0, 0)
-		off1 := p.PixOffset(0, 0)
-
 		for y := b.Min.Y; y < b.Max.Y; y++ {
+			off0 := m.PixOffset(0, y)
+			off1 := p.PixOffset(0, y)
 			copy(p.Pix[off1:][:p.Stride], m.Pix[off0:][:m.Stride])
 			off0 += m.Stride
 			off1 += p.Stride
@@ -64,10 +63,9 @@ func NewImageFrom(m image.Image) *Image {
 		b := m.Bounds()
 		p := NewImage(b, 1, GDT_UInt16)
 
-		off0 := m.PixOffset(0, 0)
-		off1 := p.PixOffset(0, 0)
-
 		for y := b.Min.Y; y < b.Max.Y; y++ {
+			off0 := m.PixOffset(0, y)
+			off1 := p.PixOffset(0, y)
 			copy(p.Pix[off1:][:p.Stride], m.Pix[off0:][:m.Stride])
 			off0 += m.Stride
 			off1 += p.Stride
@@ -82,10 +80,9 @@ func NewImageFrom(m image.Image) *Image {
 		b := m.Bounds()
 		p := NewImage(b, 4, GDT_Byte)
 
-		off0 := m.PixOffset(0, 0)
-		off1 := p.PixOffset(0, 0)
-
 		for y := b.Min.Y; y < b.Max.Y; y++ {
+			off0 := m.PixOffset(0, y)
+			off1 := p.PixOffset(0, y)
 			copy(p.Pix[off1:][:p.Stride], m.Pix[off0:][:m.Stride])
 			off0 += m.Stride
 			off1 += p.Stride
@@ -96,10 +93,9 @@ func NewImageFrom(m image.Image) *Image {
 		b := m.Bounds()
 		p := NewImage(b, 4, GDT_UInt16)
 
-		off0 := m.PixOffset(0, 0)
-		off1 := p.PixOffset(0, 0)
-
 		for y := b.Min.Y; y < b.Max.Y; y++ {
+			off0 := m.PixOffset(0, y)
+			off1 := p.PixOffset(0, y)
 			copy(p.Pix[off1:][:p.Stride], m.Pix[off0:][:m.Stride])
 			off0 += m.Stride
 			off1 += p.Stride
@@ -111,7 +107,7 @@ func NewImageFrom(m image.Image) *Image {
 
 	case *image.YCbCr:
 		b := m.Bounds()
-		p := NewImage(b, 1, GDT_Byte)
+		p := NewImage(b, 4, GDT_Byte)
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			for x := b.Min.X; x < b.Max.X; x++ {
 				R, G, B, A := m.At(x, y).RGBA()
@@ -233,6 +229,37 @@ func (p *Image) StdImage() image.Image {
 		if !isBigEndian {
 			m.Pix = append([]byte(nil), m.Pix...)
 			nativeToBigEndian(m.Pix, p.DataType.ByteSize())
+		}
+		return m
+	case p.Channels == 3 && p.DataType == GDT_Byte:
+		b := p.Rect
+		m := image.NewRGBA(b)
+		for y := b.Min.Y; y < b.Max.Y; y++ {
+			for x := b.Min.X; x < b.Max.X; x++ {
+				i0 := p.PixOffset(x, y)
+				i1 := m.PixOffset(x, y)
+
+				m.Pix[i1+0] = p.Pix[i0+0]
+				m.Pix[i1+1] = p.Pix[i0+1]
+				m.Pix[i1+2] = p.Pix[i0+2]
+				m.Pix[i1+3] = uint8(0xFF)
+			}
+		}
+		return m
+	case p.Channels == 3 && p.DataType == GDT_UInt16:
+		b := p.Rect
+		m := image.NewRGBA64(b)
+		for y := b.Min.Y; y < b.Max.Y; y++ {
+			for x := b.Min.X; x < b.Max.X; x++ {
+				i0 := p.PixOffset(x, y)
+				i1 := m.PixOffset(x, y)
+
+				m.Pix[i1+0], m.Pix[i1+5] = p.Pix[i0+5], p.Pix[i0+0]
+				m.Pix[i1+1], m.Pix[i1+4] = p.Pix[i0+4], p.Pix[i0+1]
+				m.Pix[i1+2], m.Pix[i1+3] = p.Pix[i0+3], p.Pix[i0+2]
+				m.Pix[i1+6] = uint8(0xFF)
+				m.Pix[i1+7] = uint8(0xFF)
+			}
 		}
 		return m
 	case p.Channels == 4 && p.DataType == GDT_Byte:

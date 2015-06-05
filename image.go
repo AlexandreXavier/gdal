@@ -154,7 +154,7 @@ func (p *Image) At(x, y int) color.Color {
 	return Pixel{
 		Channels: p.Channels,
 		DataType: p.DataType,
-		Data:     p.Pix[i:][:n],
+		Pix:      p.Pix[i:][:n],
 	}
 }
 
@@ -172,7 +172,7 @@ func (p *Image) Set(x, y int, c color.Color) {
 	}
 	i, n := p.PixOffset(x, y), p.PixSize()
 	v := p.ColorModel().Convert(c).(Pixel)
-	copy(p.Pix[i:][:n], v.Data)
+	copy(p.Pix[i:][:n], v.Pix)
 }
 
 func (p *Image) SetPixel(x, y int, c []byte) {

@@ -27,7 +27,7 @@ type DataView []byte
 func NewDataView(slice interface{}) (data DataView) {
 	sv := reflect.ValueOf(slice)
 	if sv.Kind() != reflect.Slice {
-		panic(fmt.Sprintf("gdal: ByteSlice called with non-slice value of type %T", slice))
+		panic(fmt.Sprintf("gdal: NewDataView called with non-slice value of type %T", slice))
 	}
 	h := (*reflect.SliceHeader)((unsafe.Pointer(&data)))
 	h.Cap = sv.Cap() * int(sv.Type().Elem().Size())

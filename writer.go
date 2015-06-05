@@ -5,11 +5,21 @@
 package gdal
 
 import (
-	"fmt"
 	"image"
 )
 
 // Encode writes the image m to w in GDAL format.
-func Save(filename string, m image.Image, opt *Options) error {
-	return fmt.Errorf("gdal: Save, TODO")
+func Save(filename string, m image.Image, opt *Options) (err error) {
+	p := NewImageFrom(m)
+
+	f, err := CreateImage(filename, p.Rect.Dx(), p.Rect.Dy(), p.Channels, p.DataType, opt)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	if err = f.Write(p.Rect, p.Pix, p.Stride); err != nil {
+		return
+	}
+	return
 }

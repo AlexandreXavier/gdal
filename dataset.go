@@ -163,8 +163,6 @@ func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 	}
 
 	copy(data, ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)])
-	nativeToBigEndian(data, p.DataType.Depth())
-
 	return nil
 }
 
@@ -198,7 +196,5 @@ func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
 	}
 
 	copy(data, ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)])
-	nativeToBigEndian(data, p.DataType.Depth())
-
 	return nil
 }

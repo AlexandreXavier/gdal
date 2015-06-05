@@ -5,12 +5,36 @@
 package gdal
 
 import (
-	"fmt"
 	"image"
 )
 
+// LoadConfig returns the color model and dimensions of a GDAL image without
+// decoding the entire image.
+func LoadConfig(filename string) (config image.Config, err error) {
+	f, err := OpenImage(filename, false)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	config.ColorModel = makeModelFunc(f.Channels, f.DataType)
+	config.Width, config.Height = f.Width, f.Height
+	return
+}
+
 // Load reads a GDAL image from file and returns it as an image.Image.
 func Load(filename string) (m image.Image, err error) {
-	err = fmt.Errorf("gdal: Load, TODO")
+	f, err := OpenImage(filename, false)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	p := NewImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+	if err = f.Read(p.Rect, p.Pix, p.Stride); err != nil {
+		return
+	}
+
+	m = p.StdImage()
 	return
 }

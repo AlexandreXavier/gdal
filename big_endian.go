@@ -8,9 +8,9 @@ package gdal
 
 const isBigEndian = false
 
-func nativeToBigEndian(data []byte, elemSize int) []byte {
+func nativeToBigEndian(data []byte, elemSize int) {
 	if isBigEndian {
-		return data
+		return
 	}
 	switch elemSize {
 	case 2:
@@ -30,5 +30,30 @@ func nativeToBigEndian(data []byte, elemSize int) []byte {
 			data[i+3], data[i+4] = data[i+4], data[i+3]
 		}
 	}
-	return data
+	return
+}
+
+func bigToNativeEndian(data []byte, elemSize int) {
+	if isBigEndian {
+		return
+	}
+	switch elemSize {
+	case 2:
+		for i := 0; i < len(data); i = i + 2 {
+			data[i+0], data[i+1] = data[i+1], data[i+0]
+		}
+	case 4:
+		for i := 0; i < len(data); i = i + 4 {
+			data[i+0], data[i+3] = data[i+3], data[i+0]
+			data[i+1], data[i+2] = data[i+2], data[i+1]
+		}
+	case 8:
+		for i := 0; i < len(data); i = i + 8 {
+			data[i+0], data[i+7] = data[i+7], data[i+0]
+			data[i+1], data[i+6] = data[i+6], data[i+1]
+			data[i+2], data[i+5] = data[i+5], data[i+2]
+			data[i+3], data[i+4] = data[i+4], data[i+3]
+		}
+	}
+	return
 }

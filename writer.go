@@ -12,7 +12,7 @@ import (
 func Save(filename string, m image.Image, opt *Options) (err error) {
 	p := NewImageFrom(m)
 
-	f, err := CreateImage(filename, p.Rect.Dx(), p.Rect.Dy(), p.Channels, p.DataType, opt)
+	f, err := CreateDataset(filename, p.Rect.Dx(), p.Rect.Dy(), p.Channels, p.DataType, opt)
 	if err != nil {
 		return
 	}

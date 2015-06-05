@@ -47,8 +47,6 @@ func (d DataType) Valid() bool {
 
 func (d DataType) Depth() int {
 	switch d {
-	case GDT_Unknown:
-		return 0
 	case GDT_Byte:
 		return 1 * 8
 	case GDT_UInt16:
@@ -71,8 +69,10 @@ func (d DataType) Depth() int {
 		return 4 * 8
 	case GDT_CFloat64:
 		return 8 * 8
-	case GDT_TypeCount:
-		return 0
 	}
 	return 0
+}
+
+func (d DataType) ByteSize() int {
+	return d.Depth() / 8
 }

@@ -22,7 +22,7 @@ type Options struct {
 	ExtOptions map[string]string
 }
 
-type Image struct {
+type Dataset struct {
 	Filename string
 	Width    int
 	Height   int
@@ -35,11 +35,11 @@ type Image struct {
 	cBufLen   int
 }
 
-func OpenImage(filename string, readOnly bool) (m *Image, err error) {
+func OpenImage(filename string, readOnly bool) (m *Dataset, err error) {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 
-	m = new(Image)
+	m = new(Dataset)
 	m.Opt = new(Options)
 
 	if readOnly {
@@ -72,11 +72,11 @@ func OpenImage(filename string, readOnly bool) (m *Image, err error) {
 	return
 }
 
-func CreateImage(filename string, width, height, channels int, dataType DataType, opt *Options) (m *Image, err error) {
+func CreateImage(filename string, width, height, channels int, dataType DataType, opt *Options) (m *Dataset, err error) {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 
-	m = &Image{
+	m = &Dataset{
 		Filename: filename,
 		Width:    width,
 		Height:   height,
@@ -120,7 +120,7 @@ func CreateImage(filename string, width, height, channels int, dataType DataType
 	return
 }
 
-func (p *Image) Close() error {
+func (p *Dataset) Close() error {
 	if p.poDataset != nil {
 		C.GDALClose(p.poDataset)
 		p.poDataset = nil
@@ -129,22 +129,24 @@ func (p *Image) Close() error {
 		C.free(unsafe.Pointer(p.cBuf))
 		p.cBuf = nil
 	}
-	*p = Image{}
+	*p = Dataset{}
 	return nil
 }
 
-func (p *Image) Read(r image.Rectangle, data []byte, stride int) error {
+func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 	pixelSize := p.Channels * p.DataType.Depth() / 8
 	if stride <= 0 {
 		stride = r.Dx() * pixelSize
 	}
-	if n := r.Dy() * stride; p.cBufLen < n {
+	data = data[:r.Dy()*stride]
+
+	if p.cBufLen < len(data) {
 		if p.cBuf != nil {
 			C.free(unsafe.Pointer(p.cBuf))
 			p.cBuf = nil
 		}
 		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
-		p.cBufLen = n
+		p.cBufLen = len(data)
 	}
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
@@ -156,25 +158,30 @@ func (p *Image) Read(r image.Rectangle, data []byte, stride int) error {
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
-			return fmt.Errorf("gdal: Image.Read(%q) failed.", p.Filename)
+			return fmt.Errorf("gdal: Dataset.Read(%q) failed.", p.Filename)
 		}
 	}
+
+	copy(data, ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)])
+	nativeToBigEndian(data, p.DataType.Depth())
 
 	return nil
 }
 
-func (p *Image) Write(r image.Rectangle, data []byte, stride int) error {
+func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
 	pixelSize := p.Channels * p.DataType.Depth() / 8
 	if stride <= 0 {
 		stride = r.Dx() * pixelSize
 	}
-	if n := r.Dy() * stride; p.cBufLen < n {
+	data = data[:r.Dy()*stride]
+
+	if p.cBufLen < len(data) {
 		if p.cBuf != nil {
 			C.free(unsafe.Pointer(p.cBuf))
 			p.cBuf = nil
 		}
 		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
-		p.cBufLen = n
+		p.cBufLen = len(data)
 	}
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
@@ -186,9 +193,12 @@ func (p *Image) Write(r image.Rectangle, data []byte, stride int) error {
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
-			return fmt.Errorf("gdal: Image.Read(%q) failed.", p.Filename)
+			return fmt.Errorf("gdal: Dataset.Read(%q) failed.", p.Filename)
 		}
 	}
+
+	copy(data, ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)])
+	nativeToBigEndian(data, p.DataType.Depth())
 
 	return nil
 }

@@ -14,10 +14,3 @@ func Load(filename string) (m image.Image, err error) {
 	err = fmt.Errorf("gdal: Load, TODO")
 	return
 }
-
-// LoadConfig returns the color model and dimensions of a GDAL image without
-// decoding the entire image.
-func LoadConfig(filename string) (cfg image.Config, err error) {
-	err = fmt.Errorf("gdal: LoadConfig, TODO")
-	return
-}

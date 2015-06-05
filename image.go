@@ -9,7 +9,6 @@ import "C"
 import (
 	"image"
 	"image/color"
-	"reflect"
 )
 
 var (
@@ -134,7 +133,7 @@ func NewImageFrom(m image.Image) *Image {
 				R, G, B, A := m.At(x, y).RGBA()
 
 				i := p.PixOffset(x, y)
-				pix := Slice(p.Pix[i:], reflect.TypeOf([]uint16(nil))).([]uint16)
+				pix := DataView(p.Pix[i:]).UInt16Slice()
 
 				pix[i+0] = uint16(R)
 				pix[i+1] = uint16(G)
@@ -151,7 +150,7 @@ func (p *Image) Bounds() image.Rectangle {
 }
 
 func (p *Image) ColorModel() color.Model {
-	return makeModelFunc(p.Channels, p.DataType)
+	return ColorModelFunc(p.Channels, p.DataType)
 }
 
 func (p *Image) At(x, y int) color.Color {

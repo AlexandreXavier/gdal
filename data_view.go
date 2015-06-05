@@ -24,7 +24,7 @@ type DataView []byte
 //	x := make([]X, xLen)
 //	y := ((*[1 << 30]byte)(unsafe.Pointer(&x[0])))[:yLen:yLen]
 //
-func NewDataView(slice interface{}) (data []byte) {
+func NewDataView(slice interface{}) (data DataView) {
 	sv := reflect.ValueOf(slice)
 	if sv.Kind() != reflect.Slice {
 		panic(fmt.Sprintf("gdal: ByteSlice called with non-slice value of type %T", slice))

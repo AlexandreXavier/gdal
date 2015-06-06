@@ -13,6 +13,6 @@ package gdal
 #cgo darwin pkg-config: gdal
 #cgo linux pkg-config: gdal
 
-#include "cgo_gdal.h"
+#include <gdal.h>
 */
 import "C"

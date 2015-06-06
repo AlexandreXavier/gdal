@@ -4,7 +4,8 @@
 
 package gdal
 
-//#include "cgo_gdal.h"
+//#include <gdal.h>
+//#include <stdint.h>
 import "C"
 import (
 	"fmt"

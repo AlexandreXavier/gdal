@@ -6,6 +6,9 @@ package gdal
 
 //#include <gdal.h>
 import "C"
+import (
+	"fmt"
+)
 
 type DataType int
 
@@ -74,5 +77,61 @@ func (d DataType) Depth() int {
 }
 
 func (d DataType) ByteSize() int {
-	return d.Depth() / 8
+	switch d {
+	case GDT_Byte:
+		return 1
+	case GDT_UInt16:
+		return 2
+	case GDT_Int16:
+		return 4
+	case GDT_UInt32:
+		return 4
+	case GDT_Int32:
+		return 4
+	case GDT_Float32:
+		return 4
+	case GDT_Float64:
+		return 8
+	case GDT_CInt16:
+		return 2
+	case GDT_CInt32:
+		return 4
+	case GDT_CFloat32:
+		return 4
+	case GDT_CFloat64:
+		return 8
+	}
+	return 0
+}
+
+func (d DataType) String() string {
+	switch d {
+	case GDT_Unknown:
+		return "GDT_Unknown"
+	case GDT_Byte:
+		return "GDT_Byte"
+	case GDT_UInt16:
+		return "GDT_UInt16"
+	case GDT_Int16:
+		return "GDT_Int16"
+	case GDT_UInt32:
+		return "GDT_UInt32"
+	case GDT_Int32:
+		return "GDT_Int32"
+	case GDT_Float32:
+		return "GDT_Float32"
+	case GDT_Float64:
+		return "GDT_Float64"
+	case GDT_CInt16:
+		return "GDT_CInt16"
+	case GDT_CInt32:
+		return "GDT_CInt32"
+	case GDT_CFloat32:
+		return "GDT_CFloat32"
+	case GDT_CFloat64:
+		return "GDT_CFloat64"
+	case GDT_TypeCount:
+		return "GDT_TypeCount"
+	}
+	return fmt.Sprintf("DataType(%d)", int(d))
 }

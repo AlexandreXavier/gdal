@@ -4,12 +4,26 @@
 
 package gdal
 
+//#include <gdal.h>
+import "C"
 import (
 	"path/filepath"
 	"strings"
 )
 
-func getDriverName(filename string) string {
+func DriverNameList() []string {
+	return _DriverNameList
+}
+
+var _DriverNameList = func() (ss []string) {
+	n := C.GDALGetDriverCount()
+	for i := C.int(0); i < n; i++ {
+		ss = append(ss, C.GoString(C.GDALGetDriverShortName(C.GDALGetDriver(i))))
+	}
+	return ss
+}()
+
+func getDefaultDriverNameByFilenameExt(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
 	s, _ := defaultDriverNameMap[ext]
 	return s

@@ -96,26 +96,49 @@ func CreateDataset(filename string, width, height, channels int, dataType DataTy
 		}
 	}
 	if p.Opt.DriverName == "" {
-		p.Opt.DriverName = getDriverName(filename)
+		p.Opt.DriverName = getDefaultDriverNameByFilenameExt(filename)
 	}
 
 	cDriverName := C.CString(p.Opt.DriverName)
 	defer C.free(unsafe.Pointer(cDriverName))
+
+	cProjName := C.CString(p.Opt.Projection)
+	defer C.free(unsafe.Pointer(cProjName))
+
+	opts := make([]*C.char, len(p.Opt.ExtOptions)+1)
+	optsList := make([]string, 0, len(p.Opt.ExtOptions))
+
+	for k, v := range p.Opt.ExtOptions {
+		optsList = append(optsList, k+":"+v)
+	}
+	for i := 0; i < len(optsList); i++ {
+		opts[i] = C.CString(optsList[i])
+		defer C.free(unsafe.Pointer(opts[i]))
+	}
 
 	poDriver := C.GDALGetDriverByName(cDriverName)
 	if poDriver == nil {
 		err = fmt.Errorf("gdal: CreateImage(%q) failed.", filename)
 		return
 	}
-
-	// TODO: support ExtOpt
 	p.poDataset = C.GDALCreate(poDriver, cname,
 		C.int(width), C.int(height), C.int(channels),
-		C.GDALDataType(dataType), nil,
+		C.GDALDataType(dataType), (**C.char)(unsafe.Pointer(&opts[0])),
 	)
 	if p.poDataset == nil {
 		err = fmt.Errorf("gdal: CreateImage(%q) failed.", filename)
 		return
+	}
+
+	var padfTransform [6]C.double
+	for i := 0; i < len(padfTransform); i++ {
+		padfTransform[i] = C.double(p.Opt.Transform[i])
+	}
+	if C.GDALSetProjection(p.poDataset, cProjName) != C.CE_None {
+		// log warning
+	}
+	if C.GDALSetGeoTransform(p.poDataset, &padfTransform[0]) != C.CE_None {
+		// log warning
 	}
 
 	return
@@ -137,6 +160,11 @@ func CreateDatasetCopy(filename string, src *Dataset, opt *Options) (p *Dataset,
 	if opt != nil {
 		*p.Opt = *opt
 		p.Opt.ExtOptions = make(map[string]string)
+		if len(src.Opt.ExtOptions) != 0 {
+			for k, v := range src.Opt.ExtOptions {
+				p.Opt.ExtOptions[k] = v
+			}
+		}
 		if len(opt.ExtOptions) != 0 {
 			for k, v := range opt.ExtOptions {
 				p.Opt.ExtOptions[k] = v
@@ -144,7 +172,7 @@ func CreateDatasetCopy(filename string, src *Dataset, opt *Options) (p *Dataset,
 		}
 	}
 	if p.Opt.DriverName == "" {
-		p.Opt.DriverName = getDriverName(filename)
+		p.Opt.DriverName = getDefaultDriverNameByFilenameExt(filename)
 	}
 
 	opts := make([]*C.char, len(p.Opt.ExtOptions)+1)

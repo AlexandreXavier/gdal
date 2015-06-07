@@ -107,76 +107,90 @@ func (d DataView) CFloat64(i int) [2]float64 {
 	return d.CFloat64Slice()[i]
 }
 
+func (d DataView) SetByte(i int, v ...byte) {
+	copy(d[i:], v)
+}
+
+func (d DataView) SetUInt16(i int, v ...uint16) {
+	copy(d.UInt16Slice()[i:], v)
+}
+
+func (d DataView) SetInt16(i int, v ...int16) {
+	copy(d.Int16Slice()[i:], v)
+}
+
+func (d DataView) SetUInt32(i int, v ...uint32) {
+	copy(d.UInt32Slice()[i:], v)
+}
+
+func (d DataView) SetInt32(i int, v ...int32) {
+	copy(d.Int32Slice()[i:], v)
+}
+
+func (d DataView) SetFloat32(i int, v ...float32) {
+	copy(d.Float32Slice()[i:], v)
+}
+
+func (d DataView) SetFloat64(i int, v ...float64) {
+	copy(d.Float64Slice()[i:], v)
+}
+
+func (d DataView) SetCInt16(i int, v ...[2]int16) {
+	copy(d.CInt16Slice()[i:], v)
+}
+
+func (d DataView) SetCInt32(i int, v ...[2]int32) {
+	copy(d.CInt32Slice()[i:], v)
+}
+
+func (d DataView) SetCFloat32(i int, v ...[2]float32) {
+	copy(d.CFloat32Slice()[i:], v)
+}
+
+func (d DataView) SetCFloat64(i int, v ...[2]float64) {
+	copy(d.CFloat64Slice()[i:], v)
+}
+
 func (d DataView) ByteSlice() []byte {
 	return d
 }
 
 func (d DataView) UInt16Slice() []uint16 {
-	if n := len(d) / 2; n > 0 {
-		return ((*[1 << 30]uint16)(unsafe.Pointer(&d[0])))[0:n:n]
-	}
-	return nil
+	return ((*[1 << 30]uint16)(unsafe.Pointer(&d[0])))[0 : len(d)/2 : len(d)/2]
 }
 
 func (d DataView) Int16Slice() []int16 {
-	if n := len(d) / 2; n > 0 {
-		return ((*[1 << 30]int16)(unsafe.Pointer(&d[0])))[0:n:n]
-	}
-	return nil
+	return ((*[1 << 30]int16)(unsafe.Pointer(&d[0])))[0 : len(d)/2 : len(d)/2]
 }
 
 func (d DataView) UInt32Slice() []uint32 {
-	if n := len(d) / 4; n > 0 {
-		return ((*[1 << 30]uint32)(unsafe.Pointer(&d[0])))[0:n:n]
-	}
-	return nil
+	return ((*[1 << 30]uint32)(unsafe.Pointer(&d[0])))[0 : len(d)/4 : len(d)/4]
 }
 
 func (d DataView) Int32Slice() []int32 {
-	if n := len(d) / 3; n > 0 {
-		return ((*[1 << 30]int32)(unsafe.Pointer(&d[0])))[0:n:n]
-	}
-	return nil
+	return ((*[1 << 30]int32)(unsafe.Pointer(&d[0])))[0 : len(d)/4 : len(d)/4]
 }
 
 func (d DataView) Float32Slice() []float32 {
-	if n := len(d) / 4; n > 0 {
-		return ((*[1 << 30]float32)(unsafe.Pointer(&d[0])))[0:n:n]
-	}
-	return nil
+	return ((*[1 << 30]float32)(unsafe.Pointer(&d[0])))[0 : len(d)/4 : len(d)/4]
 }
 
 func (d DataView) Float64Slice() []float64 {
-	if n := len(d) / 8; n > 0 {
-		return ((*[1 << 30]float64)(unsafe.Pointer(&d[0])))[0:n:n]
-	}
-	return nil
+	return ((*[1 << 30]float64)(unsafe.Pointer(&d[0])))[0 : len(d)/8 : len(d)/8]
 }
 
 func (d DataView) CInt16Slice() [][2]int16 {
-	if n := len(d) / 4; n > 0 {
-		return ((*[1 << 30][2]int16)(unsafe.Pointer(&d[0])))[0:n:n]
-	}
-	return nil
+	return ((*[1 << 30][2]int16)(unsafe.Pointer(&d[0])))[0 : len(d)/4 : len(d)/4]
 }
 
 func (d DataView) CInt32Slice() [][2]int32 {
-	if n := len(d) / 8; n > 0 {
-		return ((*[1 << 30][2]int32)(unsafe.Pointer(&d[0])))[0:n:n]
-	}
-	return nil
+	return ((*[1 << 30][2]int32)(unsafe.Pointer(&d[0])))[0 : len(d)/8 : len(d)/8]
 }
 
 func (d DataView) CFloat32Slice() [][2]float32 {
-	if n := len(d) / 8; n > 0 {
-		return ((*[1 << 30][2]float32)(unsafe.Pointer(&d[0])))[0:n:n]
-	}
-	return nil
+	return ((*[1 << 30][2]float32)(unsafe.Pointer(&d[0])))[0 : len(d)/8 : len(d)/8]
 }
 
 func (d DataView) CFloat64Slice() [][2]float64 {
-	if n := len(d) / 16; n > 0 {
-		return ((*[1 << 30][2]float64)(unsafe.Pointer(&d[0])))[0:n:n]
-	}
-	return nil
+	return ((*[1 << 30][2]float64)(unsafe.Pointer(&d[0])))[0 : len(d)/16 : len(d)/16]
 }

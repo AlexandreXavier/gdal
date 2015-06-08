@@ -15,38 +15,224 @@ type Pixel struct {
 }
 
 func (c Pixel) RGBA() (r, g, b, a uint32) {
+	switch c.Channels {
+	case 1:
+		switch c.DataType {
+		case GDT_Byte:
+			return color.Gray{
+				Y: c.Pix.Byte(0),
+			}.RGBA()
+		case GDT_UInt16:
+			return color.Gray16{
+				Y: c.Pix.UInt16(0),
+			}.RGBA()
+		default:
+			return color.Gray16{
+				Y: uint16(c.Pix.FloatValue(0, c.DataType)),
+			}.RGBA()
+		}
+	case 2:
+		switch c.DataType {
+		case GDT_Byte:
+			return color.RGBA{
+				R: c.Pix.Byte(0),
+				G: c.Pix.Byte(1),
+				B: 0xFF,
+				A: 0xFF,
+			}.RGBA()
+		case GDT_UInt16:
+			return color.RGBA64{
+				R: c.Pix.UInt16(0),
+				G: c.Pix.UInt16(1),
+				B: 0xFFFF,
+				A: 0xFFFF,
+			}.RGBA()
+		default:
+			return color.RGBA64{
+				R: uint16(c.Pix.FloatValue(0, c.DataType)),
+				G: uint16(c.Pix.FloatValue(1, c.DataType)),
+				B: 0xFFFF,
+				A: 0xFFFF,
+			}.RGBA()
+		}
+	case 3:
+		switch c.DataType {
+		case GDT_Byte:
+			return color.RGBA{
+				R: c.Pix.Byte(0),
+				G: c.Pix.Byte(1),
+				B: c.Pix.Byte(2),
+				A: 0xFF,
+			}.RGBA()
+		case GDT_UInt16:
+			return color.RGBA64{
+				R: c.Pix.UInt16(0),
+				G: c.Pix.UInt16(1),
+				B: c.Pix.UInt16(2),
+				A: 0xFFFF,
+			}.RGBA()
+		default:
+			return color.RGBA64{
+				R: uint16(c.Pix.FloatValue(0, c.DataType)),
+				G: uint16(c.Pix.FloatValue(1, c.DataType)),
+				B: uint16(c.Pix.FloatValue(2, c.DataType)),
+				A: 0xFFFF,
+			}.RGBA()
+		}
+	case 4:
+		switch c.DataType {
+		case GDT_Byte:
+			return color.RGBA{
+				R: c.Pix.Byte(0),
+				G: c.Pix.Byte(1),
+				B: c.Pix.Byte(2),
+				A: c.Pix.Byte(3),
+			}.RGBA()
+		case GDT_UInt16:
+			return color.RGBA64{
+				R: c.Pix.UInt16(0),
+				G: c.Pix.UInt16(1),
+				B: c.Pix.UInt16(2),
+				A: c.Pix.UInt16(3),
+			}.RGBA()
+		default:
+			return color.RGBA64{
+				R: uint16(c.Pix.FloatValue(0, c.DataType)),
+				G: uint16(c.Pix.FloatValue(1, c.DataType)),
+				B: uint16(c.Pix.FloatValue(2, c.DataType)),
+				A: uint16(c.Pix.FloatValue(3, c.DataType)),
+			}.RGBA()
+		}
+	}
 	return
 }
 
 func ColorModel(channels int, dataType DataType) color.Model {
+	f, ok := colorModelConvert_channels_x_datatype_map[DataType(channels)*dataType]
+	if f != nil && ok {
+		return f
+	}
 	return color.ModelFunc(func(c color.Color) color.Color {
-		_ = channels
-		_ = dataType
-		return c
+		return colorModelConvert(channels, dataType, c)
 	})
 }
 
-func colorRgbToGray(r, g, b uint32) uint32 {
-	y := (299*r + 587*g + 114*b + 500) / 1000
-	return y
+var colorModelConvert_channels_x_datatype_map = map[DataType]color.Model{
+	1 * GDT_Byte:   color.ModelFunc(colorModelConvert_c1_Byte),
+	1 * GDT_UInt16: color.ModelFunc(colorModelConvert_c1_UInt16),
+	3 * GDT_Byte:   color.ModelFunc(colorModelConvert_c3_Byte),
+	3 * GDT_UInt16: color.ModelFunc(colorModelConvert_c3_UInt16),
+	4 * GDT_Byte:   color.ModelFunc(colorModelConvert_c4_Byte),
+	4 * GDT_UInt16: color.ModelFunc(colorModelConvert_c4_UInt16),
 }
 
-func colorRgbToGrayI32(r, g, b int32) int32 {
-	y := (299*r + 587*g + 114*b + 500) / 1000
-	return y
+func colorModelConvert_c1_Byte(c color.Color) color.Color {
+	c2 := Pixel{
+		Channels: 1,
+		DataType: GDT_Byte,
+		Pix:      make(DataView, 1*GDT_Byte.ByteSize()),
+	}
+	v := color.GrayModel.Convert(c).(color.Gray)
+	c2.Pix[0] = v.Y
+	return c2
+}
+func colorModelConvert_c1_UInt16(c color.Color) color.Color {
+	c2 := Pixel{
+		Channels: 1,
+		DataType: GDT_UInt16,
+		Pix:      make(DataView, 1*GDT_UInt16.ByteSize()),
+	}
+	v := color.Gray16Model.Convert(c).(color.Gray16)
+	c2.Pix[0] = uint8(v.Y >> 8)
+	c2.Pix[1] = uint8(v.Y)
+	return c2
 }
 
-func colorRgbToGrayF32(r, g, b float32) float32 {
-	y := (299*r + 587*g + 114*b + 500) / 1000
-	return y
+func colorModelConvert_c3_Byte(c color.Color) color.Color {
+	c2 := Pixel{
+		Channels: 3,
+		DataType: GDT_Byte,
+		Pix:      make(DataView, 3*GDT_Byte.ByteSize()),
+	}
+	r, g, b, _ := c.RGBA()
+	c2.Pix[0] = uint8(r >> 8)
+	c2.Pix[1] = uint8(g >> 8)
+	c2.Pix[2] = uint8(b >> 8)
+	return c2
+}
+func colorModelConvert_c3_UInt16(c color.Color) color.Color {
+	c2 := Pixel{
+		Channels: 3,
+		DataType: GDT_UInt16,
+		Pix:      make(DataView, 3*GDT_UInt16.ByteSize()),
+	}
+	r, g, b, _ := c.RGBA()
+	c2.Pix[0] = uint8(r >> 8)
+	c2.Pix[1] = uint8(r)
+	c2.Pix[2] = uint8(g >> 8)
+	c2.Pix[3] = uint8(g)
+	c2.Pix[4] = uint8(b >> 8)
+	c2.Pix[5] = uint8(b)
+	return c2
 }
 
-func colorRgbToGrayI64(r, g, b int64) int64 {
-	y := (299*r + 587*g + 114*b + 500) / 1000
-	return y
+func colorModelConvert_c4_Byte(c color.Color) color.Color {
+	c2 := Pixel{
+		Channels: 4,
+		DataType: GDT_Byte,
+		Pix:      make(DataView, 4*GDT_Byte.ByteSize()),
+	}
+	r, g, b, a := c.RGBA()
+	c2.Pix[0] = uint8(r >> 8)
+	c2.Pix[1] = uint8(g >> 8)
+	c2.Pix[2] = uint8(b >> 8)
+	c2.Pix[3] = uint8(a >> 8)
+	return c2
+}
+func colorModelConvert_c4_UInt16(c color.Color) color.Color {
+	c2 := Pixel{
+		Channels: 4,
+		DataType: GDT_UInt16,
+		Pix:      make(DataView, 4*GDT_UInt16.ByteSize()),
+	}
+	r, g, b, a := c.RGBA()
+	c2.Pix[0] = uint8(r >> 8)
+	c2.Pix[1] = uint8(r)
+	c2.Pix[2] = uint8(g >> 8)
+	c2.Pix[3] = uint8(g)
+	c2.Pix[4] = uint8(b >> 8)
+	c2.Pix[5] = uint8(b)
+	c2.Pix[6] = uint8(a >> 8)
+	c2.Pix[7] = uint8(a)
+	return c2
 }
 
-func colorRgbToGrayF64(r, g, b float64) float64 {
-	y := (299*r + 587*g + 114*b + 500) / 1000
-	return y
+func colorModelConvert(channels int, dataType DataType, c color.Color) color.Color {
+	c2 := Pixel{
+		Channels: channels,
+		DataType: dataType,
+		Pix:      make(DataView, channels*dataType.ByteSize()),
+	}
+
+	if c1, ok := c.(Pixel); ok {
+		if c1.Channels == c2.Channels && c1.DataType == c2.DataType {
+			copy(c2.Pix, c1.Pix)
+			return c2
+		}
+		if c1.DataType == c2.DataType {
+			copy(c2.Pix, c1.Pix)
+			return c2
+		}
+		for i := 0; i < c1.Channels && i < c2.Channels; i++ {
+			c2.Pix.SetFloatValue(i, c2.DataType, c1.Pix.FloatValue(i, c1.DataType))
+		}
+		return c2
+	}
+
+	r, g, b, a := c.RGBA()
+	rgba := []uint32{r, g, b, a}
+	for i := 0; i < c2.Channels && i < len(rgba); i++ {
+		c2.Pix.SetFloatValue(i, c2.DataType, float64(rgba[i]))
+	}
+	return c2
 }

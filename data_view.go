@@ -107,6 +107,26 @@ func (d DataView) CFloat64(i int) [2]float64 {
 	return d.CFloat64Slice()[i]
 }
 
+func (d DataView) FloatValue(i int, dataType DataType) float64 {
+	switch dataType {
+	case GDT_Byte:
+		return float64(d.Byte(i))
+	case GDT_UInt16:
+		return float64(d.UInt16(i))
+	case GDT_Int16:
+		return float64(d.Int16(i))
+	case GDT_UInt32:
+		return float64(d.UInt32(i))
+	case GDT_Int32:
+		return float64(d.Int32(i))
+	case GDT_Float32:
+		return float64(d.Float32(i))
+	case GDT_Float64:
+		return float64(d.Float64(i))
+	}
+	return 0
+}
+
 func (d DataView) SetByte(i int, v ...byte) {
 	copy(d[i:], v)
 }
@@ -149,6 +169,25 @@ func (d DataView) SetCFloat32(i int, v ...[2]float32) {
 
 func (d DataView) SetCFloat64(i int, v ...[2]float64) {
 	copy(d.CFloat64Slice()[i:], v)
+}
+
+func (d DataView) SetFloatValue(i int, dataType DataType, v float64) {
+	switch dataType {
+	case GDT_Byte:
+		d.SetByte(i, byte(v))
+	case GDT_UInt16:
+		d.SetUInt16(i, uint16(v))
+	case GDT_Int16:
+		d.SetInt16(i, int16(v))
+	case GDT_UInt32:
+		d.SetUInt32(i, uint32(v))
+	case GDT_Int32:
+		d.SetInt32(i, int32(v))
+	case GDT_Float32:
+		d.SetFloat32(i, float32(v))
+	case GDT_Float64:
+		d.SetFloat64(i, float64(v))
+	}
 }
 
 func (d DataView) ByteSlice() []byte {

@@ -4,8 +4,6 @@
 
 package gdal
 
-//#include <gdal.h>
-import "C"
 import (
 	"image"
 	"image/color"

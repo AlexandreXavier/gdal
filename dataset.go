@@ -36,14 +36,14 @@ type Dataset struct {
 	cBufLen   int
 }
 
-func OpenDataset(filename string, readOnly bool) (p *Dataset, err error) {
+func OpenDataset(filename string, accessType Access) (p *Dataset, err error) {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 
 	p = new(Dataset)
 	p.Opt = new(Options)
 
-	if readOnly {
+	if accessType == GA_ReadOnly {
 		p.poDataset = C.GDALOpen(cname, C.GA_ReadOnly)
 	} else {
 		p.poDataset = C.GDALOpen(cname, C.GA_Update)

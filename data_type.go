@@ -10,6 +10,23 @@ import (
 	"fmt"
 )
 
+type Access int
+
+const (
+	GA_ReadOnly Access = iota
+	GA_Update
+)
+
+func (d Access) String() string {
+	switch d {
+	case GA_ReadOnly:
+		return "GA_ReadOnly"
+	case GA_Update:
+		return "GA_Update"
+	}
+	return fmt.Sprintf("Access(%d)", int(d))
+}
+
 type DataType int
 
 const (

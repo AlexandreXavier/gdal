@@ -126,12 +126,14 @@ func NewImageFrom(m image.Image) *Image {
 				R, G, B, A := m.At(x, y).RGBA()
 
 				i := p.PixOffset(x, y)
-				pix := DataView(p.Pix[i:]).UInt16Slice()
-
-				pix[i+0] = uint16(R)
-				pix[i+1] = uint16(G)
-				pix[i+2] = uint16(B)
-				pix[i+3] = uint16(A)
+				p.Pix[i+0] = uint8(R >> 8)
+				p.Pix[i+1] = uint8(R)
+				p.Pix[i+2] = uint8(G >> 8)
+				p.Pix[i+3] = uint8(G)
+				p.Pix[i+4] = uint8(B >> 8)
+				p.Pix[i+5] = uint8(B)
+				p.Pix[i+6] = uint8(A >> 8)
+				p.Pix[i+7] = uint8(A)
 			}
 		}
 		return p

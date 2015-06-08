@@ -14,16 +14,16 @@ func nativeToBigEndian(data []byte, elemSize int) {
 	}
 	switch elemSize {
 	case 2:
-		for i := 0; i < len(data); i = i + 2 {
+		for i := 0; i+2-1 < len(data); i = i + 2 {
 			data[i+0], data[i+1] = data[i+1], data[i+0]
 		}
 	case 4:
-		for i := 0; i < len(data); i = i + 4 {
+		for i := 0; i+4-1 < len(data); i = i + 4 {
 			data[i+0], data[i+3] = data[i+3], data[i+0]
 			data[i+1], data[i+2] = data[i+2], data[i+1]
 		}
 	case 8:
-		for i := 0; i < len(data); i = i + 8 {
+		for i := 0; i+8-1 < len(data); i = i + 8 {
 			data[i+0], data[i+7] = data[i+7], data[i+0]
 			data[i+1], data[i+6] = data[i+6], data[i+1]
 			data[i+2], data[i+5] = data[i+5], data[i+2]
@@ -39,16 +39,16 @@ func bigToNativeEndian(data []byte, elemSize int) {
 	}
 	switch elemSize {
 	case 2:
-		for i := 0; i < len(data); i = i + 2 {
+		for i := 0; i+2-1 < len(data); i = i + 2 {
 			data[i+0], data[i+1] = data[i+1], data[i+0]
 		}
 	case 4:
-		for i := 0; i < len(data); i = i + 4 {
+		for i := 0; i+4-1 < len(data); i = i + 4 {
 			data[i+0], data[i+3] = data[i+3], data[i+0]
 			data[i+1], data[i+2] = data[i+2], data[i+1]
 		}
 	case 8:
-		for i := 0; i < len(data); i = i + 8 {
+		for i := 0; i+8-1 < len(data); i = i + 8 {
 			data[i+0], data[i+7] = data[i+7], data[i+0]
 			data[i+1], data[i+6] = data[i+6], data[i+1]
 			data[i+2], data[i+5] = data[i+5], data[i+2]

@@ -2,7 +2,12 @@
 
 PkgDoc: [http://godoc.org/github.com/chai2010/gdal](http://godoc.org/github.com/chai2010/gdal)
 
+**Notes: Need Go1.5+!**
+
 ## Install
+
+Install `GCC` or `MinGW` (http://tdm-gcc.tdragon.net/download) at first,
+and then run these commands:
 
 1. `go get github.com/chai2010/gdal`
 2. `go run hello.go`

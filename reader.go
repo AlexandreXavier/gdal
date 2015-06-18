@@ -38,3 +38,19 @@ func Load(filename string) (m image.Image, err error) {
 	m = p.StdImage()
 	return
 }
+
+// LoadImage reads a GDAL image from file and returns it as an Image.
+func LoadImage(filename string) (m *Image, err error) {
+	f, err := OpenDataset(filename, GA_ReadOnly)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	m = NewImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+	if err = f.Read(m.Rect, m.Pix, m.Stride); err != nil {
+		return
+	}
+
+	return
+}

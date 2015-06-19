@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"image"
 	"os"
+	"reflect"
 	"unsafe"
 )
 
@@ -29,7 +30,7 @@ type Dataset struct {
 	Width    int
 	Height   int
 	Channels int
-	DataType DataType
+	DataType reflect.Kind
 	Opt      *Options
 
 	poDataset C.GDALDatasetH
@@ -58,7 +59,7 @@ func OpenDataset(filename string, flag int) (p *Dataset, err error) {
 	p.Width = int(C.GDALGetRasterXSize(p.poDataset))
 	p.Height = int(C.GDALGetRasterYSize(p.poDataset))
 	p.Channels = int(C.GDALGetRasterCount(p.poDataset))
-	p.DataType = DataType(C.GDALGetRasterDataType(C.GDALGetRasterBand(p.poDataset, 1)))
+	p.DataType = goDataType(C.GDALGetRasterDataType(C.GDALGetRasterBand(p.poDataset, 1)))
 
 	p.Opt.DriverName = C.GoString(C.GDALGetDriverShortName(C.GDALGetDatasetDriver(p.poDataset)))
 	p.Opt.Projection = C.GoString(C.GDALGetProjectionRef(p.poDataset))
@@ -74,7 +75,7 @@ func OpenDataset(filename string, flag int) (p *Dataset, err error) {
 	return
 }
 
-func CreateDataset(filename string, width, height, channels int, dataType DataType, opt *Options) (p *Dataset, err error) {
+func CreateDataset(filename string, width, height, channels int, dataType reflect.Kind, opt *Options) (p *Dataset, err error) {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 
@@ -223,7 +224,7 @@ func (p *Dataset) Close() error {
 }
 
 func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
-	pixelSize := p.Channels * p.DataType.ByteSize()
+	pixelSize := SizeofPixel(p.Channels, p.DataType)
 	if stride <= 0 {
 		stride = r.Dx() * pixelSize
 	}
@@ -246,7 +247,7 @@ func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
 		cErr := C.GDALRasterIO(pBand, C.GF_Read,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(&cBuf[nBandId*p.DataType.ByteSize()]), C.int(r.Dx()), C.int(r.Dy()),
+			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),
 			C.GDALDataType(p.DataType), C.int(pixelSize),
 			C.int(stride),
 		)
@@ -260,7 +261,7 @@ func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 }
 
 func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
-	pixelSize := p.Channels * p.DataType.ByteSize()
+	pixelSize := SizeofPixel(p.Channels, p.DataType)
 	if stride <= 0 {
 		stride = r.Dx() * pixelSize
 	}
@@ -284,7 +285,7 @@ func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
 		cErr := C.GDALRasterIO(pBand, C.GF_Write,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(&cBuf[nBandId*p.DataType.ByteSize()]), C.int(r.Dx()), C.int(r.Dy()),
+			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),
 			C.GDALDataType(p.DataType), C.int(pixelSize),
 			C.int(stride),
 		)

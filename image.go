@@ -7,6 +7,15 @@ package gdal
 import (
 	"image"
 	"image/color"
+	"reflect"
+	"runtime"
+)
+
+const (
+	isLittleEndian = (runtime.GOARCH == "386" ||
+		runtime.GOARCH == "amd64" ||
+		runtime.GOARCH == "arm" ||
+		runtime.GOARCH == "arm64")
 )
 
 var (
@@ -16,18 +25,18 @@ var (
 type Image struct {
 	Rect     image.Rectangle
 	Channels int
-	DataType DataType
-	Pix      DataView
+	DataType reflect.Kind
+	Pix      PixSilce
 
 	// Stride is the Pix stride (in bytes, must align with PixelSize)
 	// between vertically adjacent pixels.
 	Stride int
 }
 
-func NewImage(r image.Rectangle, channels int, dataType DataType) *Image {
+func NewImage(r image.Rectangle, channels int, dataType reflect.Kind) *Image {
 	m := &Image{
 		Rect:     r,
-		Stride:   r.Dx() * channels * dataType.ByteSize(),
+		Stride:   r.Dx() * channels * SizeofKind(dataType),
 		Channels: channels,
 		DataType: dataType,
 	}
@@ -43,7 +52,7 @@ func NewImageFrom(m image.Image) *Image {
 	switch m := m.(type) {
 	case *image.Gray:
 		b := m.Bounds()
-		p := NewImage(b, 1, GDT_Byte)
+		p := NewImage(b, 1, reflect.Uint8)
 
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			off0 := m.PixOffset(0, y)
@@ -56,7 +65,7 @@ func NewImageFrom(m image.Image) *Image {
 
 	case *image.Gray16:
 		b := m.Bounds()
-		p := NewImage(b, 1, GDT_UInt16)
+		p := NewImage(b, 1, reflect.Uint16)
 
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			off0 := m.PixOffset(0, y)
@@ -65,15 +74,14 @@ func NewImageFrom(m image.Image) *Image {
 			off0 += m.Stride
 			off1 += p.Stride
 		}
-
-		if !isBigEndian {
-			bigToNativeEndian(p.Pix, p.DataType.ByteSize())
+		if isLittleEndian {
+			p.Pix.SwapEndian(p.DataType)
 		}
 		return p
 
 	case *image.RGBA:
 		b := m.Bounds()
-		p := NewImage(b, 4, GDT_Byte)
+		p := NewImage(b, 4, reflect.Uint8)
 
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			off0 := m.PixOffset(0, y)
@@ -86,7 +94,7 @@ func NewImageFrom(m image.Image) *Image {
 
 	case *image.RGBA64:
 		b := m.Bounds()
-		p := NewImage(b, 4, GDT_UInt16)
+		p := NewImage(b, 4, reflect.Uint16)
 
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			off0 := m.PixOffset(0, y)
@@ -95,14 +103,14 @@ func NewImageFrom(m image.Image) *Image {
 			off0 += m.Stride
 			off1 += p.Stride
 		}
-		if !isBigEndian {
-			bigToNativeEndian(p.Pix, p.DataType.ByteSize())
+		if isLittleEndian {
+			p.Pix.SwapEndian(p.DataType)
 		}
 		return p
 
 	case *image.YCbCr:
 		b := m.Bounds()
-		p := NewImage(b, 4, GDT_Byte)
+		p := NewImage(b, 4, reflect.Uint8)
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			for x := b.Min.X; x < b.Max.X; x++ {
 				R, G, B, A := m.At(x, y).RGBA()
@@ -118,7 +126,7 @@ func NewImageFrom(m image.Image) *Image {
 
 	default:
 		b := m.Bounds()
-		p := NewImage(b, 4, GDT_UInt16)
+		p := NewImage(b, 4, reflect.Uint16)
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			for x := b.Min.X; x < b.Max.X; x++ {
 				R, G, B, A := m.At(x, y).RGBA()
@@ -148,13 +156,14 @@ func (p *Image) ColorModel() color.Model {
 
 func (p *Image) At(x, y int) color.Color {
 	if !(image.Point{x, y}.In(p.Rect)) {
-		return Pixel{
+		return Color{
 			Channels: p.Channels,
 			DataType: p.DataType,
 		}
 	}
-	i, n := p.PixOffset(x, y), p.PixSize()
-	return Pixel{
+	i := p.PixOffset(x, y)
+	n := SizeofPixel(p.Channels, p.DataType)
+	return Color{
 		Channels: p.Channels,
 		DataType: p.DataType,
 		Pix:      p.Pix[i:][:n],
@@ -165,7 +174,8 @@ func (p *Image) PixelAt(x, y int) []byte {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return nil
 	}
-	i, n := p.PixOffset(x, y), p.PixSize()
+	i := p.PixOffset(x, y)
+	n := SizeofPixel(p.Channels, p.DataType)
 	return p.Pix[i:][:n]
 }
 
@@ -173,8 +183,9 @@ func (p *Image) Set(x, y int, c color.Color) {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return
 	}
-	i, n := p.PixOffset(x, y), p.PixSize()
-	v := p.ColorModel().Convert(c).(Pixel)
+	i := p.PixOffset(x, y)
+	n := SizeofPixel(p.Channels, p.DataType)
+	v := p.ColorModel().Convert(c).(Color)
 	copy(p.Pix[i:][:n], v.Pix)
 }
 
@@ -182,16 +193,13 @@ func (p *Image) SetPixel(x, y int, c []byte) {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return
 	}
-	i, n := p.PixOffset(x, y), p.PixSize()
+	i := p.PixOffset(x, y)
+	n := SizeofPixel(p.Channels, p.DataType)
 	copy(p.Pix[i:][:n], c)
 }
 
 func (p *Image) PixOffset(x, y int) int {
-	return (y-p.Rect.Min.Y)*p.Stride + (x-p.Rect.Min.X)*p.PixSize()
-}
-
-func (p *Image) PixSize() int {
-	return p.Channels * p.DataType.ByteSize()
+	return (y-p.Rect.Min.Y)*p.Stride + (x-p.Rect.Min.X)*SizeofPixel(p.Channels, p.DataType)
 }
 
 func (p *Image) SubImage(r image.Rectangle) image.Image {
@@ -214,38 +222,38 @@ func (p *Image) SubImage(r image.Rectangle) image.Image {
 
 func (p *Image) StdImage() image.Image {
 	switch {
-	case p.Channels == 1 && p.DataType == GDT_Byte:
+	case p.Channels == 1 && p.DataType == reflect.Uint8:
 		return &image.Gray{
 			Pix:    p.Pix,
 			Stride: p.Stride,
 			Rect:   p.Rect,
 		}
-	case p.Channels == 1 && p.DataType == GDT_UInt16:
+	case p.Channels == 1 && p.DataType == reflect.Uint16:
 		m := &image.Gray16{
 			Pix:    p.Pix,
 			Stride: p.Stride,
 			Rect:   p.Rect,
 		}
-		if !isBigEndian {
+		if isLittleEndian {
 			m.Pix = append([]byte(nil), m.Pix...)
-			nativeToBigEndian(m.Pix, p.DataType.ByteSize())
+			PixSilce(m.Pix).SwapEndian(p.DataType)
 		}
 		return m
-	case p.Channels == 4 && p.DataType == GDT_Byte:
+	case p.Channels == 4 && p.DataType == reflect.Uint8:
 		return &image.RGBA{
 			Pix:    p.Pix,
 			Stride: p.Stride,
 			Rect:   p.Rect,
 		}
-	case p.Channels == 4 && p.DataType == GDT_UInt16:
+	case p.Channels == 4 && p.DataType == reflect.Uint16:
 		m := &image.RGBA64{
 			Pix:    p.Pix,
 			Stride: p.Stride,
 			Rect:   p.Rect,
 		}
-		if !isBigEndian {
+		if isLittleEndian {
 			m.Pix = append([]byte(nil), m.Pix...)
-			nativeToBigEndian(m.Pix, p.DataType.ByteSize())
+			PixSilce(m.Pix).SwapEndian(p.DataType)
 		}
 		return m
 	}

@@ -10,6 +10,7 @@ import "C"
 import (
 	"fmt"
 	"image"
+	"os"
 	"unsafe"
 )
 
@@ -36,14 +37,14 @@ type Dataset struct {
 	cBufLen   int
 }
 
-func OpenDataset(filename string, accessType Access) (p *Dataset, err error) {
+func OpenDataset(filename string, flag int) (p *Dataset, err error) {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 
 	p = new(Dataset)
 	p.Opt = new(Options)
 
-	if accessType == GA_ReadOnly {
+	if flag == os.O_RDONLY {
 		p.poDataset = C.GDALOpen(cname, C.GA_ReadOnly)
 	} else {
 		p.poDataset = C.GDALOpen(cname, C.GA_Update)

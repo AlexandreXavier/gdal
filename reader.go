@@ -6,12 +6,13 @@ package gdal
 
 import (
 	"image"
+	"os"
 )
 
 // LoadConfig returns the color model and dimensions of a GDAL image without
 // decoding the entire image.
 func LoadConfig(filename string) (config image.Config, err error) {
-	f, err := OpenDataset(filename, GA_ReadOnly)
+	f, err := OpenDataset(filename, os.O_RDONLY)
 	if err != nil {
 		return
 	}
@@ -24,7 +25,7 @@ func LoadConfig(filename string) (config image.Config, err error) {
 
 // Load reads a GDAL image from file and returns it as an image.Image.
 func Load(filename string) (m image.Image, err error) {
-	f, err := OpenDataset(filename, GA_ReadOnly)
+	f, err := OpenDataset(filename, os.O_RDONLY)
 	if err != nil {
 		return
 	}
@@ -41,7 +42,7 @@ func Load(filename string) (m image.Image, err error) {
 
 // LoadImage reads a GDAL image from file and returns it as an Image.
 func LoadImage(filename string) (m *Image, err error) {
-	f, err := OpenDataset(filename, GA_ReadOnly)
+	f, err := OpenDataset(filename, os.O_RDONLY)
 	if err != nil {
 		return
 	}

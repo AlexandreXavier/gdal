@@ -7,6 +7,7 @@ package gdal
 import (
 	"image"
 	"os"
+	"reflect"
 )
 
 // LoadConfig returns the color model and dimensions of a GDAL image without
@@ -34,6 +35,41 @@ func Load(filename string) (m image.Image, err error) {
 	p := NewImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
 	if err = f.Read(p.Rect, p.Pix, p.Stride); err != nil {
 		return
+	}
+
+	if p.Channels == 1 && p.DataType == reflect.Uint8 {
+		return &image.Gray{
+			Pix:    p.Pix,
+			Stride: p.Stride,
+			Rect:   p.Rect,
+		}, nil
+	}
+	if p.Channels == 4 && p.DataType == reflect.Uint8 {
+		return &image.RGBA{
+			Pix:    p.Pix,
+			Stride: p.Stride,
+			Rect:   p.Rect,
+		}, nil
+	}
+	if p.Channels == 1 && p.DataType == reflect.Uint16 {
+		if isLittleEndian {
+			p.Pix.SwapEndian(p.DataType)
+		}
+		return &image.Gray16{
+			Pix:    p.Pix,
+			Stride: p.Stride,
+			Rect:   p.Rect,
+		}, nil
+	}
+	if p.Channels == 4 && p.DataType == reflect.Uint16 {
+		if isLittleEndian {
+			p.Pix.SwapEndian(p.DataType)
+		}
+		return &image.RGBA64{
+			Pix:    p.Pix,
+			Stride: p.Stride,
+			Rect:   p.Rect,
+		}, nil
 	}
 
 	m = p.StdImage()

@@ -225,13 +225,13 @@ func (p *Dataset) Close() error {
 
 func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 	pixelSize := SizeofPixel(p.Channels, p.DataType)
-	if stride <= 0 {
-		stride = r.Dx() * pixelSize
+	if n := r.Dx() * pixelSize; stride <= n {
+		stride = n
 	}
 	data = data[:r.Dy()*stride]
 
-	if p.cBufLen < len(data) {
-		p.cBufLen = len(data)
+	if n := stride * r.Dy(); p.cBufLen < n {
+		p.cBufLen = n
 		if p.cBuf != nil {
 			C.free(unsafe.Pointer(p.cBuf))
 			p.cBuf = nil
@@ -248,7 +248,7 @@ func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 		cErr := C.GDALRasterIO(pBand, C.GF_Read,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
 			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),
-			C.GDALDataType(p.DataType), C.int(pixelSize),
+			gdalDataType(p.DataType), C.int(pixelSize),
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
@@ -262,13 +262,13 @@ func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 
 func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
 	pixelSize := SizeofPixel(p.Channels, p.DataType)
-	if stride <= 0 {
-		stride = r.Dx() * pixelSize
+	if n := r.Dx() * pixelSize; stride <= n {
+		stride = n
 	}
 	data = data[:r.Dy()*stride]
 
-	if p.cBufLen < len(data) {
-		p.cBufLen = len(data)
+	if n := stride * r.Dy(); p.cBufLen < n {
+		p.cBufLen = n
 		if p.cBuf != nil {
 			C.free(unsafe.Pointer(p.cBuf))
 			p.cBuf = nil
@@ -286,7 +286,7 @@ func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
 		cErr := C.GDALRasterIO(pBand, C.GF_Write,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
 			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),
-			C.GDALDataType(p.DataType), C.int(pixelSize),
+			gdalDataType(p.DataType), C.int(pixelSize),
 			C.int(stride),
 		)
 		if cErr != C.CE_None {

@@ -125,7 +125,7 @@ func CreateDataset(filename string, width, height, channels int, dataType reflec
 	}
 	p.poDataset = C.GDALCreate(poDriver, cname,
 		C.int(width), C.int(height), C.int(channels),
-		C.GDALDataType(dataType), (**C.char)(unsafe.Pointer(&opts[0])),
+		gdalDataType(p.DataType), (**C.char)(unsafe.Pointer(&opts[0])),
 	)
 	if p.poDataset == nil {
 		err = fmt.Errorf("gdal: CreateImage(%q) failed.", filename)

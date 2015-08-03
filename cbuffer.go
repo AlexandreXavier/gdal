@@ -13,14 +13,18 @@ import (
 )
 
 type CBuffer struct {
-	cptr unsafe.Pointer
-	data []byte
+	dontResize bool
+	cptr       unsafe.Pointer
+	data       []byte
 }
 
-func NewCBuffer(size int) *CBuffer {
+func NewCBuffer(size int, dontResize ...bool) *CBuffer {
 	p := new(CBuffer)
 	p.cptr = C.malloc(C.size_t(size))
 	p.data = (*[1 << 30]byte)(p.cptr)[0:size:size]
+	if len(dontResize) > 0 {
+		p.dontResize = dontResize[0]
+	}
 	return p
 }
 
@@ -35,10 +39,14 @@ func (p *CBuffer) Release() error {
 	return nil
 }
 
-func (p *CBuffer) Resize(size int) {
+func (p *CBuffer) Resize(size int) error {
+	if p.dontResize {
+		return errors.New("gdal: CBuffer.Resize, donot resize!")
+	}
 	p.Release()
 	p.cptr = C.malloc(C.size_t(size))
 	p.data = (*[1 << 30]byte)(p.cptr)[0:size:size]
+	return nil
 }
 
 func (p *CBuffer) Size() int {

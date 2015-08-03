@@ -108,7 +108,9 @@ func newCImage(cbuf *CBuffer, r image.Rectangle, channels int, dataType reflect.
 		DataType:  dataType,
 	}
 	if n := r.Dy() * p.Stride; n > cbuf.Size() {
-		cbuf.Resize(n)
+		if err := cbuf.Resize(n); err != nil {
+			panic(err)
+		}
 	}
 	p.Pix = cbuf.Data()
 	return p

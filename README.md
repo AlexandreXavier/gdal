@@ -37,8 +37,25 @@ func main() {
 		log.Fatal("gdal.Load:", err)
 	}
 
-	// save data
+	// save bmp
+	err = gdal.Save("output.bmp", m, nil)
+	if err != nil {
+		log.Fatal("gdal.Save:", err)
+	}
+
+	// save tiff
 	err = gdal.Save("output.tiff", m, nil)
+	if err != nil {
+		log.Fatal("gdal.Save:", err)
+	}
+
+	// save jpeg-tiff data
+	err = gdal.Save("output.jpeg.tiff", m, &gdal.Options{
+		ExtOptions: map[string]string{
+			"COMPRESS":     "JPEG",
+			"JPEG_QUALITY": "75",
+		},
+	})
 	if err != nil {
 		log.Fatal("gdal.Save:", err)
 	}

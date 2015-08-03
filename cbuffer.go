@@ -7,8 +7,6 @@ package gdal
 //#include <stdlib.h>
 import "C"
 import (
-	"image"
-	"os"
 	"unsafe"
 )
 
@@ -55,27 +53,4 @@ func (p *CBuffer) Size() int {
 
 func (p *CBuffer) Data() []byte {
 	return p.data
-}
-
-// LoadCImage reads a GDAL image from file and returns it as an Image, the m.Pix is in C memory.
-func LoadCImage(filename string, cbuf *CBuffer) (m *Image, err error) {
-	f, err := OpenDataset(filename, os.O_RDONLY)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-
-	if cbuf != nil {
-		m = newCImage(cbuf, image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
-		if err = f.ReadToCBuf(m.Rect, m.Pix, m.Stride); err != nil {
-			return
-		}
-	} else {
-		m = NewImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
-		if err = f.Read(m.Rect, m.Pix, m.Stride); err != nil {
-			return
-		}
-	}
-
-	return
 }

@@ -7,6 +7,7 @@ package gdal
 //#include <stdlib.h>
 import "C"
 import (
+	"errors"
 	"unsafe"
 )
 

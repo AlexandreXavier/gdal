@@ -77,17 +77,39 @@ func Load(filename string) (m image.Image, err error) {
 }
 
 // LoadImage reads a GDAL image from file and returns it as an Image.
-func LoadImage(filename string) (m *Image, err error) {
+func LoadImage(filename string, cbuf ...*CBuffer) (m *Image, err error) {
 	f, err := OpenDataset(filename, os.O_RDONLY)
 	if err != nil {
 		return
 	}
 	defer f.Close()
 
-	m = NewImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
-	if err = f.Read(m.Rect, m.Pix, m.Stride); err != nil {
-		return
+	if len(cbuf) > 0 && cbuf[0] != nil {
+		m = newCImage(cbuf[0], image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+		if err = f.ReadToCBuf(m.Rect, m.Pix, m.Stride); err != nil {
+			return
+		}
+	} else {
+		m = NewImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+		if err = f.Read(m.Rect, m.Pix, m.Stride); err != nil {
+			return
+		}
 	}
 
 	return
+}
+
+func newCImage(cbuf *CBuffer, r image.Rectangle, channels int, dataType reflect.Kind) *Image {
+	p := &Image{
+		MemPMagic: MemPMagic,
+		Rect:      r,
+		Stride:    r.Dx() * channels * SizeofKind(dataType),
+		Channels:  channels,
+		DataType:  dataType,
+	}
+	if n := r.Dy() * p.Stride; n > cbuf.Size() {
+		cbuf.Resize(n)
+	}
+	p.Pix = cbuf.Data()
+	return p
 }

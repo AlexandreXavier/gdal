@@ -225,10 +225,12 @@ func (p *Dataset) Close() error {
 
 func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 	pixelSize := SizeofPixel(p.Channels, p.DataType)
-	if n := r.Dx() * pixelSize; stride <= n {
-		stride = n
+	if stride == 0 {
+		stride = r.Dx() * pixelSize
 	}
-	data = data[:r.Dy()*stride]
+	if n := r.Dx() * pixelSize; stride < n {
+		return fmt.Errorf("gdal: Read, bad stride: %d", stride)
+	}
 
 	if n := stride * r.Dy(); p.cBufLen < n {
 		p.cBufLen = n
@@ -241,6 +243,7 @@ func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
 	}
 
+	data = data[:r.Dy()*stride]
 	cBuf := ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)]
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
@@ -260,12 +263,40 @@ func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 	return nil
 }
 
+func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
+	pixelSize := SizeofPixel(p.Channels, p.DataType)
+
+	if stride == 0 {
+		stride = r.Dx() * pixelSize
+	}
+	if n := r.Dx() * pixelSize; stride < n {
+		return fmt.Errorf("gdal: ReadToCBuf, bad stride: %d", stride)
+	}
+
+	for nBandId := 0; nBandId < p.Channels; nBandId++ {
+		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
+		cErr := C.GDALRasterIO(pBand, C.GF_Read,
+			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
+			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),
+			gdalDataType(p.DataType), C.int(pixelSize),
+			C.int(stride),
+		)
+		if cErr != C.CE_None {
+			return fmt.Errorf("gdal: Dataset.Read(%q) failed.", p.Filename)
+		}
+	}
+	return nil
+}
+
 func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
 	pixelSize := SizeofPixel(p.Channels, p.DataType)
-	if n := r.Dx() * pixelSize; stride <= n {
-		stride = n
+
+	if stride == 0 {
+		stride = r.Dx() * pixelSize
 	}
-	data = data[:r.Dy()*stride]
+	if n := r.Dx() * pixelSize; stride < n {
+		return fmt.Errorf("gdal: Write, bad stride: %d", stride)
+	}
 
 	if n := stride * r.Dy(); p.cBufLen < n {
 		p.cBufLen = n
@@ -278,6 +309,7 @@ func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
 		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
 	}
 
+	data = data[:r.Dy()*stride]
 	cBuf := ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)]
 	copy(cBuf, data)
 
@@ -294,5 +326,30 @@ func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
 		}
 	}
 
+	return nil
+}
+
+func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) error {
+	pixelSize := SizeofPixel(p.Channels, p.DataType)
+
+	if stride == 0 {
+		stride = r.Dx() * pixelSize
+	}
+	if n := r.Dx() * pixelSize; stride < n {
+		return fmt.Errorf("gdal: WriteFromCBuf, bad stride: %d", stride)
+	}
+
+	for nBandId := 0; nBandId < p.Channels; nBandId++ {
+		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
+		cErr := C.GDALRasterIO(pBand, C.GF_Write,
+			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
+			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),
+			gdalDataType(p.DataType), C.int(pixelSize),
+			C.int(stride),
+		)
+		if cErr != C.CE_None {
+			return fmt.Errorf("gdal: Dataset.Write(%q) failed.", p.Filename)
+		}
+	}
 	return nil
 }

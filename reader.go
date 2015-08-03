@@ -32,43 +32,43 @@ func Load(filename string) (m image.Image, err error) {
 	}
 	defer f.Close()
 
-	p := NewImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
-	if err = f.Read(p.Rect, p.Pix, p.Stride); err != nil {
+	p := NewMemPImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+	if err = f.Read(p.XRect, p.XPix, p.XStride); err != nil {
 		return
 	}
 
-	if p.Channels == 1 && p.DataType == reflect.Uint8 {
+	if p.XChannels == 1 && p.XDataType == reflect.Uint8 {
 		return &image.Gray{
-			Pix:    p.Pix,
-			Stride: p.Stride,
-			Rect:   p.Rect,
+			Pix:    p.XPix,
+			Stride: p.XStride,
+			Rect:   p.XRect,
 		}, nil
 	}
-	if p.Channels == 4 && p.DataType == reflect.Uint8 {
+	if p.XChannels == 4 && p.XDataType == reflect.Uint8 {
 		return &image.RGBA{
-			Pix:    p.Pix,
-			Stride: p.Stride,
-			Rect:   p.Rect,
+			Pix:    p.XPix,
+			Stride: p.XStride,
+			Rect:   p.XRect,
 		}, nil
 	}
-	if p.Channels == 1 && p.DataType == reflect.Uint16 {
+	if p.XChannels == 1 && p.XDataType == reflect.Uint16 {
 		if isLittleEndian {
-			p.Pix.SwapEndian(p.DataType)
+			p.XPix.SwapEndian(p.XDataType)
 		}
 		return &image.Gray16{
-			Pix:    p.Pix,
-			Stride: p.Stride,
-			Rect:   p.Rect,
+			Pix:    p.XPix,
+			Stride: p.XStride,
+			Rect:   p.XRect,
 		}, nil
 	}
-	if p.Channels == 4 && p.DataType == reflect.Uint16 {
+	if p.XChannels == 4 && p.XDataType == reflect.Uint16 {
 		if isLittleEndian {
-			p.Pix.SwapEndian(p.DataType)
+			p.XPix.SwapEndian(p.XDataType)
 		}
 		return &image.RGBA64{
-			Pix:    p.Pix,
-			Stride: p.Stride,
-			Rect:   p.Rect,
+			Pix:    p.XPix,
+			Stride: p.XStride,
+			Rect:   p.XRect,
 		}, nil
 	}
 
@@ -77,7 +77,7 @@ func Load(filename string) (m image.Image, err error) {
 }
 
 // LoadImage reads a GDAL image from file and returns it as an Image.
-func LoadImage(filename string, cbuf ...*CBuffer) (m *Image, err error) {
+func LoadImage(filename string, cbuf ...*CBuffer) (m *MemPImage, err error) {
 	f, err := OpenDataset(filename, os.O_RDONLY)
 	if err != nil {
 		return
@@ -86,12 +86,12 @@ func LoadImage(filename string, cbuf ...*CBuffer) (m *Image, err error) {
 
 	if len(cbuf) > 0 && cbuf[0] != nil {
 		m = newCImage(cbuf[0], image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
-		if err = f.ReadToCBuf(m.Rect, m.Pix, m.Stride); err != nil {
+		if err = f.ReadToCBuf(m.XRect, m.XPix, m.XStride); err != nil {
 			return
 		}
 	} else {
-		m = NewImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
-		if err = f.Read(m.Rect, m.Pix, m.Stride); err != nil {
+		m = NewMemPImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+		if err = f.Read(m.XRect, m.XPix, m.XStride); err != nil {
 			return
 		}
 	}
@@ -99,19 +99,19 @@ func LoadImage(filename string, cbuf ...*CBuffer) (m *Image, err error) {
 	return
 }
 
-func newCImage(cbuf *CBuffer, r image.Rectangle, channels int, dataType reflect.Kind) *Image {
-	p := &Image{
-		MemPMagic: MemPMagic,
-		Rect:      r,
-		Stride:    r.Dx() * channels * SizeofKind(dataType),
-		Channels:  channels,
-		DataType:  dataType,
+func newCImage(cbuf *CBuffer, r image.Rectangle, channels int, dataType reflect.Kind) *MemPImage {
+	p := &MemPImage{
+		XMemPMagic: MemPMagic,
+		XRect:      r,
+		XStride:    r.Dx() * channels * SizeofKind(dataType),
+		XChannels:  channels,
+		XDataType:  dataType,
 	}
-	if n := r.Dy() * p.Stride; n > cbuf.Size() {
+	if n := r.Dy() * p.XStride; n > cbuf.Size() {
 		if err := cbuf.Resize(n); err != nil {
 			panic(err)
 		}
 	}
-	p.Pix = cbuf.Data()
+	p.XPix = cbuf.Data()
 	return p
 }

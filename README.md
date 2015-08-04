@@ -12,6 +12,14 @@ and then run these commands:
 1. `go get github.com/chai2010/gdal`
 2. `go run hello.go`
 
+For windows-64bit user:
+
+1. run `go generate github.com/chai2010/gdal` copy the `gdal-cgo-win64.dll` to `$(GOPATH)/bin`
+
+For windows-32bit user:
+
+1. Please build `gdal-cgo-win32.dll` and `./build-windows/lib/libgdal-cgo-386.a` first!
+
 ## Example
 
 ```Go

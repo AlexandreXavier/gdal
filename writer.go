@@ -9,7 +9,7 @@ import (
 )
 
 // Encode writes the image m to w in GDAL format.
-func Save(filename string, m image.Image, opt *Options, cbuf ...*CBuffer) (err error) {
+func Save(filename string, m image.Image, opt *Options, cbuf ...CBuffer) (err error) {
 	p, ok := AsMemPImage(m)
 	if !ok {
 		p = NewMemPImageFrom(m)

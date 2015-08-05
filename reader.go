@@ -25,7 +25,7 @@ func LoadConfig(filename string) (config image.Config, err error) {
 }
 
 // Load reads a GDAL image from file and returns it as an image.Image.
-func Load(filename string, cbuf ...*CBuffer) (m image.Image, err error) {
+func Load(filename string, cbuf ...CBuffer) (m image.Image, err error) {
 	f, err := OpenDataset(filename, os.O_RDONLY)
 	if err != nil {
 		return
@@ -85,7 +85,7 @@ func Load(filename string, cbuf ...*CBuffer) (m image.Image, err error) {
 }
 
 // LoadImage reads a GDAL image from file and returns it as an Image.
-func LoadImage(filename string, cbuf ...*CBuffer) (m *MemPImage, err error) {
+func LoadImage(filename string, cbuf ...CBuffer) (m *MemPImage, err error) {
 	f, err := OpenDataset(filename, os.O_RDONLY)
 	if err != nil {
 		return
@@ -107,7 +107,7 @@ func LoadImage(filename string, cbuf ...*CBuffer) (m *MemPImage, err error) {
 	return
 }
 
-func newCImage(cbuf *CBuffer, r image.Rectangle, channels int, dataType reflect.Kind) *MemPImage {
+func newCImage(cbuf CBuffer, r image.Rectangle, channels int, dataType reflect.Kind) *MemPImage {
 	p := &MemPImage{
 		XMemPMagic: MemPMagic,
 		XRect:      r,
@@ -115,11 +115,11 @@ func newCImage(cbuf *CBuffer, r image.Rectangle, channels int, dataType reflect.
 		XChannels:  channels,
 		XDataType:  dataType,
 	}
-	if n := r.Dy() * p.XStride; n > cbuf.Size() {
+	if n := r.Dy() * p.XStride; n > len(cbuf.CData()) {
 		if err := cbuf.Resize(n); err != nil {
 			panic(err)
 		}
 	}
-	p.XPix = cbuf.Data()
+	p.XPix = cbuf.CData()
 	return p
 }

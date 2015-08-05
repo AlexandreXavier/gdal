@@ -23,10 +23,10 @@ func BenchmarkLoad_empty_8000x6000_png_gdal(b *testing.B) {
 }
 
 func BenchmarkLoad_empty_8000x6000_png_gdal_cbuf(b *testing.B) {
-	var cbuf CBuffer
-	defer cbuf.Release()
+	cbuf := NewCBuffer(0)
+	defer cbuf.Close()
 	for i := 0; i < b.N; i++ {
-		if _, err := LoadImage("./testdata/empty8000x6000.png", &cbuf); err != nil {
+		if _, err := LoadImage("./testdata/empty8000x6000.png", cbuf); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -41,10 +41,10 @@ func BenchmarkLoad_video_001_tiff_gdal(b *testing.B) {
 }
 
 func BenchmarkLoad_video_001_tiff_gdal_cbuf(b *testing.B) {
-	var cbuf CBuffer
-	defer cbuf.Release()
+	cbuf := NewCBuffer(0)
+	defer cbuf.Close()
 	for i := 0; i < b.N; i++ {
-		if _, err := LoadImage("./testdata/video-001.tiff", &cbuf); err != nil {
+		if _, err := LoadImage("./testdata/video-001.tiff", cbuf); err != nil {
 			b.Fatal(err)
 		}
 	}

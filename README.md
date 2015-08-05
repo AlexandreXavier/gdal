@@ -59,6 +59,7 @@ func main() {
 
 	// save jpeg-tiff data
 	err = gdal.Save("output.jpeg.tiff", m, &gdal.Options{
+		DriverName: "GTiff",
 		ExtOptions: map[string]string{
 			"COMPRESS":     "JPEG",
 			"JPEG_QUALITY": "75",

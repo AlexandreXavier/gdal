@@ -25,16 +25,24 @@ func LoadConfig(filename string) (config image.Config, err error) {
 }
 
 // Load reads a GDAL image from file and returns it as an image.Image.
-func Load(filename string) (m image.Image, err error) {
+func Load(filename string, cbuf ...*CBuffer) (m image.Image, err error) {
 	f, err := OpenDataset(filename, os.O_RDONLY)
 	if err != nil {
 		return
 	}
 	defer f.Close()
 
-	p := NewMemPImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
-	if err = f.Read(p.XRect, p.XPix, p.XStride); err != nil {
-		return
+	var p *MemPImage = nil
+	if len(cbuf) > 0 && cbuf[0] != nil {
+		p = newCImage(cbuf[0], image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+		if err = f.ReadToCBuf(p.XRect, p.XPix, p.XStride); err != nil {
+			return
+		}
+	} else {
+		p = NewMemPImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+		if err = f.Read(p.XRect, p.XPix, p.XStride); err != nil {
+			return
+		}
 	}
 
 	if p.XChannels == 1 && p.XDataType == reflect.Uint8 {

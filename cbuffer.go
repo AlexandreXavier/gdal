@@ -41,6 +41,10 @@ func (p *CBuffer) Release() {
 	}
 }
 
+func (p *CBuffer) CanResize() bool {
+	return !p.dontResize
+}
+
 func (p *CBuffer) Resize(size int) error {
 	if size <= 0 {
 		return errors.New("gdal: CBuffer.Resize, bad size!")

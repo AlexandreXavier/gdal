@@ -1,6 +1,7 @@
 # Go bindings for GDAL
 
-PkgDoc: [http://godoc.org/github.com/chai2010/gdal](http://godoc.org/github.com/chai2010/gdal)
+[![Build Status](https://travis-ci.org/chai2010/gdal.svg)](https://travis-ci.org/chai2010/gdal)
+[![GoDoc](https://godoc.org/github.com/chai2010/gdal?status.svg)](https://godoc.org/github.com/chai2010/gdal)
 
 **Notes: Need Go1.5+!**
 

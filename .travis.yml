@@ -3,4 +3,5 @@ language: go
 go:
   - tip
 
-sudo: required
+before_install:
+  - sudo apt-get install -y -qq libgdal1-dev

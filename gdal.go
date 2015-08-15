@@ -23,23 +23,27 @@ type _VsiFileInfo struct {
 	cbuf CBuffer
 }
 
-func genVsiMemFilename() (filename string) {
+func VSITempName() (filename string) {
 	vsi_file_mutex.Lock()
 	defer vsi_file_mutex.Unlock()
-	filename = fmt.Sprintf("/vsimem/newVsiMemFilename_%08d.tmp", vsi_file_id)
+	return _VSITempName()
+}
+
+func _VSITempName() (filename string) {
+	filename = fmt.Sprintf("/vsimem/gdal.VSITempName.%08d.tmp", vsi_file_id)
 	vsi_file_id++
 	return
 }
 
-func newVsiMemFile(cbuf CBuffer) (filename string, err error) {
+func VSIFileFromMemBuffer(cbuf CBuffer) (filename string, err error) {
 	vsi_file_mutex.Lock()
 	defer vsi_file_mutex.Unlock()
 
 	if cbuf.CData() == nil {
-		return "", fmt.Errorf("gdal: newVsiMemFile, cbuf is zero.")
+		return "", fmt.Errorf("gdal: VSIFileFromMemBuffer, cbuf is zero.")
 	}
 
-	filename = genVsiMemFilename()
+	filename = _VSITempName()
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 
@@ -56,16 +60,20 @@ func newVsiMemFile(cbuf CBuffer) (filename string, err error) {
 	return filename, nil
 }
 
-func getVsiMemFileData(filename string) (CBuffer, error) {
+func VSIGetMemFileBuffer(filename string) (CBuffer, error) {
 	vsi_file_mutex.Lock()
 	defer vsi_file_mutex.Unlock()
 
-	info, ok := vsi_file_map[filename]
-	if !ok {
-		return nil, fmt.Errorf("gdal: getVsiMemFileData %s, file not found!", filename)
-	}
-	if info.cbuf != nil {
-		return info.cbuf, nil
+	if info, ok := vsi_file_map[filename]; ok {
+		if info.cbuf != nil {
+			p := unsafe.Pointer(&info.cbuf.CData()[0])
+			size := len(info.cbuf.CData())
+
+			cbuf := newCBufferFrom(p, size, true)
+			cbuf.innerCBuffer.free = func(p unsafe.Pointer) {}
+
+			return cbuf, nil
+		}
 	}
 
 	cname := C.CString(filename)
@@ -78,11 +86,11 @@ func getVsiMemFileData(filename string) (CBuffer, error) {
 	return cbuf, nil
 }
 
-func removeVsiMemFile(filename string) error {
+func VSIUnlink(filename string) error {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 	if C.VSIUnlink(cname) != 0 {
-		return fmt.Errorf("gdal: removeVsiMemFile %s failed!", filename)
+		return fmt.Errorf("gdal: VSIUnlink %s failed!", filename)
 	}
 	delete(vsi_file_map, filename)
 	return nil

@@ -4,4 +4,5 @@
 
 //go:generate go run gen.go
 
+// Package gdal_bench provides more benchmark for gdal.
 package gdal_bench

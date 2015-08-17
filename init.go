@@ -9,4 +9,5 @@ import "C"
 
 func init() {
 	C.GDALAllRegister()
+	C.VSIInstallMemFileHandler()
 }

@@ -31,17 +31,21 @@ type cBuffer struct {
 	*innerCBuffer
 }
 
-func newCBufferFrom(cptr unsafe.Pointer, size int, dontResize ...bool) CBuffer {
+func NewCBuffer(size int, dontResize ...bool) CBuffer {
+	return newCBuffer(size, dontResize...)
+}
+
+func newCBuffer(size int, dontResize ...bool) *cBuffer {
 	p := &cBuffer{
-		innerCBuffer: newInnerCBufferFrom(cptr, size, dontResize...),
+		innerCBuffer: newInnerCBuffer(size, dontResize...),
 	}
 	runtime.SetFinalizer(p.innerCBuffer, (*innerCBuffer).Close)
 	return p
 }
 
-func NewCBuffer(size int, dontResize ...bool) CBuffer {
+func newCBufferFrom(cptr unsafe.Pointer, size int, dontResize ...bool) *cBuffer {
 	p := &cBuffer{
-		innerCBuffer: newInnerCBuffer(size, dontResize...),
+		innerCBuffer: newInnerCBufferFrom(cptr, size, dontResize...),
 	}
 	runtime.SetFinalizer(p.innerCBuffer, (*innerCBuffer).Close)
 	return p
@@ -60,10 +64,15 @@ type innerCBuffer struct {
 	dontResize bool
 	cptr       unsafe.Pointer
 	data       []byte
+
+	malloc func(size C.size_t) unsafe.Pointer
+	free   func(p unsafe.Pointer)
 }
 
 func newInnerCBufferFrom(cptr unsafe.Pointer, size int, dontResize ...bool) *innerCBuffer {
 	p := new(innerCBuffer)
+	p.malloc = func(size C.size_t) unsafe.Pointer { return C.malloc(size) }
+	p.free = func(p unsafe.Pointer) { C.free(p) }
 	if cptr != nil && size > 0 {
 		p.cptr = cptr
 		p.data = (*[1 << 30]byte)(p.cptr)[0:size:size]
@@ -76,8 +85,10 @@ func newInnerCBufferFrom(cptr unsafe.Pointer, size int, dontResize ...bool) *inn
 
 func newInnerCBuffer(size int, dontResize ...bool) *innerCBuffer {
 	p := new(innerCBuffer)
+	p.malloc = func(size C.size_t) unsafe.Pointer { return C.malloc(size) }
+	p.free = func(p unsafe.Pointer) { C.free(p) }
 	if size > 0 {
-		p.cptr = C.malloc(C.size_t(size))
+		p.cptr = p.malloc(C.size_t(size))
 		p.data = (*[1 << 30]byte)(p.cptr)[0:size:size]
 	}
 	if len(dontResize) > 0 {
@@ -92,7 +103,7 @@ func (p *innerCBuffer) CBufMagic() string {
 
 func (p *innerCBuffer) Close() error {
 	if p.cptr != nil {
-		C.free(p.cptr)
+		p.free(p.cptr)
 	}
 	*p = innerCBuffer{}
 
@@ -113,13 +124,12 @@ func (p *innerCBuffer) Resize(size int) error {
 		return errors.New("gdal: cBuffer.Resize, donot resize!")
 	}
 	if n := len(p.data); n > 0 && n != size {
-		C.free(p.cptr)
+		p.free(p.cptr)
 		p.cptr = nil
 		p.data = nil
 	}
-	p.Close()
 	if size > 0 {
-		p.cptr = C.malloc(C.size_t(size))
+		p.cptr = p.malloc(C.size_t(size))
 		p.data = (*[1 << 30]byte)(p.cptr)[0:size:size]
 	}
 	return nil

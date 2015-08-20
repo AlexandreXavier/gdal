@@ -468,7 +468,7 @@ func (p *Dataset) ReadBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
 	return nil
 }
 
-func (p *Dataset) GDALWriteBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
+func (p *Dataset) WriteBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
 	xSize, ySize := p.GetBlockSize()
 	length := xSize * ySize * p.Channels * SizeofKind(p.DataType)
 

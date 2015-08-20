@@ -6,6 +6,7 @@ package gdal
 
 //#include <gdal.h>
 //#include <stdint.h>
+//#include <stdlib.h>
 import "C"
 import (
 	"fmt"
@@ -20,6 +21,38 @@ const (
 	GA_ReadOnly GDALAccess = iota
 	GA_Update
 )
+
+type ResampleType int
+
+const (
+	ResampleType_Nil ResampleType = iota
+	ResampleType_Nearest
+	ResampleType_Gauss
+	ResampleType_Cubic
+	ResampleType_Average
+	ResampleType_Mode
+	ResampleType_AverageMagpase
+)
+
+func (p ResampleType) Name() string {
+	switch p {
+	case ResampleType_Nil:
+		return "NONE"
+	case ResampleType_Nearest:
+		return "NEAREST"
+	case ResampleType_Gauss:
+		return "GAUSS"
+	case ResampleType_Cubic:
+		return "CUBIC"
+	case ResampleType_Average:
+		return "AVERAGE"
+	case ResampleType_Mode:
+		return "MODE"
+	case ResampleType_AverageMagpase:
+		return "AVERAGE_MAGPHASE"
+	}
+	return "NONE"
+}
 
 // GDAL Raster Formats
 //
@@ -361,5 +394,102 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 			return fmt.Errorf("gdal: Dataset.Write(%q) failed.", p.Filename)
 		}
 	}
+	return nil
+}
+
+func (p *Dataset) GetOverviewCount() int {
+	pBand := C.GDALGetRasterBand(p.poDataset, 1)
+	v := C.GDALGetOverviewCount(pBand)
+	return int(v)
+}
+
+func (p *Dataset) GetOverviewSize(i int) (width, height int) {
+	pBand := C.GDALGetRasterBand(p.poDataset, C.int(1))
+	pBand = C.GDALGetOverview(pBand, C.int(i))
+	cx := C.GDALGetRasterBandXSize(pBand)
+	cy := C.GDALGetRasterBandYSize(pBand)
+	width, height = int(cx), int(cy)
+	return
+}
+
+func (p *Dataset) BuildOverviews(resampleType ResampleType, overviewList []int) error {
+	if len(overviewList) == 0 {
+		return nil
+	}
+
+	pszResampling := C.CString(resampleType.Name())
+	defer C.free(unsafe.Pointer(pszResampling))
+
+	cptr := C.malloc(C.size_t(len(overviewList) * 4))
+	defer C.free(cptr)
+
+	nOverviews := len(overviewList)
+	panOverviewList := (*[1 << 30]C.int)(cptr)[:nOverviews:nOverviews]
+
+	cErr := C.GDALBuildOverviews(p.poDataset, pszResampling,
+		C.int(nOverviews), &panOverviewList[0],
+		0, nil,
+		nil, nil,
+	)
+	if cErr != C.CE_None {
+		return fmt.Errorf("gdal: Dataset.BuildOverviews(%q) failed.", p.Filename)
+	}
+	return nil
+}
+
+func (p *Dataset) GetBlockSize() (xSize, ySize int) {
+	var pnXSize, pnYSize C.int
+	pBand := C.GDALGetRasterBand(p.poDataset, 1)
+	C.GDALGetBlockSize(pBand, &pnXSize, &pnYSize)
+	xSize, ySize = int(pnXSize), int(pnYSize)
+	return
+}
+
+func (p *Dataset) ReadBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
+	xSize, ySize := p.GetBlockSize()
+	length := xSize * ySize * p.Channels * SizeofKind(p.DataType)
+
+	if len(cbuf.CData()) < length {
+		if err := cbuf.Resize(length); err != nil {
+			return nil
+		}
+	}
+
+	for nBandId := 0; nBandId < p.Channels; nBandId++ {
+		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
+		pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
+		cErr := C.GDALReadBlock(pBand, C.int(nXOff), C.int(nYOff),
+			unsafe.Pointer(&cbuf.CData()[nBandId*SizeofKind(p.DataType)]),
+		)
+		if cErr != C.CE_None {
+			return fmt.Errorf("gdal: Dataset.ReadBlock(%q) failed.", p.Filename)
+		}
+	}
+	return nil
+}
+
+func (p *Dataset) GDALWriteBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
+	xSize, ySize := p.GetBlockSize()
+	length := xSize * ySize * p.Channels * SizeofKind(p.DataType)
+
+	if len(cbuf.CData()) < length {
+		return fmt.Errorf("gdal: Dataset.GDALWriteBlock(%q), bad data size.", p.Filename)
+	}
+
+	for nBandId := 0; nBandId < p.Channels; nBandId++ {
+		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
+		pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
+		cErr := C.GDALReadBlock(pBand, C.int(nXOff), C.int(nYOff),
+			unsafe.Pointer(&cbuf.CData()[nBandId*SizeofKind(p.DataType)]),
+		)
+		if cErr != C.CE_None {
+			return fmt.Errorf("gdal: Dataset.GDALWriteBlock(%q) failed.", p.Filename)
+		}
+	}
+	return nil
+}
+
+func (p *Dataset) Flush() error {
+	C.GDALFlushCache(p.poDataset)
 	return nil
 }

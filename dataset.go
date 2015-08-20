@@ -190,13 +190,9 @@ func CreateDataset(filename string, width, height, channels int, dataType reflec
 }
 
 // CreateDatasetBigtiff create a big tiled tiff, with overview.
-func CreateDatasetBigtiff(
-	filename string,
-	width, height, channels int,
-	tileWidth, tileHeight int,
-	dataType reflect.Kind,
-	Projection string,
-	Transform [6]float64,
+func CreateDatasetBigtiff(filename string,
+	width, height, channels int, tileWidth, tileHeight int, dataType reflect.Kind,
+	Projection string, Transform [6]float64,
 ) (p *Dataset, err error) {
 	return CreateDataset(filename, width, height, channels, dataType, &Options{
 		DriverName: "GTiff",

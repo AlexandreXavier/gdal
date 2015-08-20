@@ -15,10 +15,10 @@ import (
 	"unsafe"
 )
 
-type GDALAccess int
+type Access int
 
 const (
-	GA_ReadOnly GDALAccess = iota
+	GA_ReadOnly Access = iota
 	GA_Update
 )
 
@@ -77,7 +77,7 @@ type Dataset struct {
 	cBufLen   int
 }
 
-func OpenDataset(filename string, flag GDALAccess) (p *Dataset, err error) {
+func OpenDataset(filename string, flag Access) (p *Dataset, err error) {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 

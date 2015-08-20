@@ -189,6 +189,33 @@ func CreateDataset(filename string, width, height, channels int, dataType reflec
 	return
 }
 
+// CreateDatasetBigtiff create a big tiled tiff, with overview.
+func CreateDatasetBigtiff(
+	filename string,
+	width, height, channels int,
+	tileWidth, tileHeight int,
+	dataType reflect.Kind,
+	Projection string,
+	Transform [6]float64,
+) (p *Dataset, err error) {
+	return CreateDataset(filename, width, height, channels, dataType, &Options{
+		DriverName: "GTiff",
+		Projection: Projection,
+		Transform:  Transform,
+		ExtOptions: map[string]string{
+			"BIGTIFF":                 "IF_NEEDED",
+			"TILED":                   "YES",
+			"GDAL_TIFF_INTERNAL_MASK": "YES",
+			"BLOCKXSIZE":              fmt.Sprintf(`"%d"`, tileWidth),
+			"BLOCKYSIZE":              fmt.Sprintf(`"%d"`, tileHeight),
+			"INTERLEAVE":              "PIXEL",
+			"COMPRESS":                "NONE",
+		},
+	})
+
+	// TODO: call p.BuildOverviews(...)
+}
+
 func CreateDatasetCopy(filename string, src *Dataset, opt *Options) (p *Dataset, err error) {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))

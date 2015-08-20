@@ -10,9 +10,15 @@ import "C"
 import (
 	"fmt"
 	"image"
-	"os"
 	"reflect"
 	"unsafe"
+)
+
+type GDALAccess int
+
+const (
+	GA_ReadOnly GDALAccess = iota
+	GA_Update
 )
 
 // GDAL Raster Formats
@@ -38,17 +44,21 @@ type Dataset struct {
 	cBufLen   int
 }
 
-func OpenDataset(filename string, flag int) (p *Dataset, err error) {
+func OpenDataset(filename string, flag GDALAccess) (p *Dataset, err error) {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 
 	p = new(Dataset)
 	p.Opt = new(Options)
 
-	if flag == os.O_RDONLY {
+	switch flag {
+	case GA_ReadOnly:
 		p.poDataset = C.GDALOpen(cname, C.GA_ReadOnly)
-	} else {
+	case GA_Update:
 		p.poDataset = C.GDALOpen(cname, C.GA_Update)
+	default:
+		err = fmt.Errorf("gdal: OpenImage(%q), unknown flag(%d).", filename, int(flag))
+		return
 	}
 	if p.poDataset == nil {
 		err = fmt.Errorf("gdal: OpenImage(%q) failed.", filename)

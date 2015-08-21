@@ -313,6 +313,10 @@ func (p *Dataset) Close() error {
 	return nil
 }
 
+func (p *Dataset) ReadImage(r image.Rectangle) (m image.Image, err error) {
+	panic("TODO")
+}
+
 func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 	pixelSize := SizeofPixel(p.Channels, p.DataType)
 	if stride == 0 {
@@ -376,6 +380,10 @@ func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 		}
 	}
 	return nil
+}
+
+func (p *Dataset) WriteImage(m image.Image, sp image.Point) error {
+	panic("TODO")
 }
 
 func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
@@ -504,6 +512,10 @@ func (p *Dataset) GetBlockSize(idxOverview int) (xSize, ySize int) {
 	return int(pnXSize), int(pnYSize)
 }
 
+func (p *Dataset) ReadBlockImage(idxOverview, nXOff, nYOff int) (m image.Image, err error) {
+	panic("TODO")
+}
+
 func (p *Dataset) ReadBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
 	xSize, ySize := p.GetBlockSize(idxOverview)
 	length := xSize * ySize * p.Channels * SizeofKind(p.DataType)
@@ -527,6 +539,10 @@ func (p *Dataset) ReadBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
 		}
 	}
 	return nil
+}
+
+func (p *Dataset) WriteBlockImage(idxOverview, nXOff, nYOff int, m image.Image) error {
+	panic("TODO")
 }
 
 func (p *Dataset) WriteBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {

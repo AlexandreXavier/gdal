@@ -191,10 +191,12 @@ func CreateDataset(filename string, width, height, channels int, dataType reflec
 
 // CreateDatasetBigtiff create a big tiled tiff, with overview.
 func CreateDatasetBigtiff(filename string,
-	width, height, channels int, tileWidth, tileHeight int, dataType reflect.Kind,
+	width, height, channels int, dataType reflect.Kind,
 	Projection string, Transform [6]float64,
+	resampleType ResampleType,
 ) (p *Dataset, err error) {
-	return CreateDataset(filename, width, height, channels, dataType, &Options{
+	const tileSize = 256
+	p, err = CreateDataset(filename, width, height, channels, dataType, &Options{
 		DriverName: "GTiff",
 		Projection: Projection,
 		Transform:  Transform,
@@ -202,14 +204,36 @@ func CreateDatasetBigtiff(filename string,
 			"BIGTIFF":                 "IF_NEEDED",
 			"TILED":                   "YES",
 			"GDAL_TIFF_INTERNAL_MASK": "YES",
-			"BLOCKXSIZE":              fmt.Sprintf(`"%d"`, tileWidth),
-			"BLOCKYSIZE":              fmt.Sprintf(`"%d"`, tileHeight),
+			"GDAL_TIFF_OVR_BLOCKSIZE": fmt.Sprintf(`"%d"`, tileSize),
+			"BLOCKXSIZE":              fmt.Sprintf(`"%d"`, tileSize),
+			"BLOCKYSIZE":              fmt.Sprintf(`"%d"`, tileSize),
 			"INTERLEAVE":              "PIXEL",
 			"COMPRESS":                "NONE",
 		},
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	// TODO: call p.BuildOverviews(...)
+	maxImageSize := width
+	if maxImageSize < height {
+		maxImageSize = height
+	}
+	if maxImageSize <= tileSize {
+		return p, nil
+	}
+
+	anOverviewList := make([]int, 30)
+	for i := 0; i < len(anOverviewList); i++ {
+		if x := (tileSize << uint8(i)); x >= maxImageSize {
+			break
+		}
+		anOverviewList[i] = 1 << uint8(i+1)
+	}
+	if err := p.BuildOverviews(resampleType, anOverviewList); err != nil {
+		// log warning
+	}
+	return p, nil
 }
 
 func CreateDatasetCopy(filename string, src *Dataset, opt *Options) (p *Dataset, err error) {
@@ -420,19 +444,10 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 	return nil
 }
 
-func (p *Dataset) GetOverviewCount() int {
+func (p *Dataset) HasOverviews() bool {
 	pBand := C.GDALGetRasterBand(p.poDataset, 1)
-	v := C.GDALGetOverviewCount(pBand)
-	return int(v)
-}
-
-func (p *Dataset) GetOverviewSize(i int) (width, height int) {
-	pBand := C.GDALGetRasterBand(p.poDataset, C.int(1))
-	pBand = C.GDALGetOverview(pBand, C.int(i))
-	cx := C.GDALGetRasterBandXSize(pBand)
-	cy := C.GDALGetRasterBandYSize(pBand)
-	width, height = int(cx), int(cy)
-	return
+	v := C.GDALHasArbitraryOverviews(pBand)
+	return int(v) != 0
 }
 
 func (p *Dataset) BuildOverviews(resampleType ResampleType, overviewList []int) error {
@@ -460,16 +475,37 @@ func (p *Dataset) BuildOverviews(resampleType ResampleType, overviewList []int) 
 	return nil
 }
 
-func (p *Dataset) GetBlockSize() (xSize, ySize int) {
-	var pnXSize, pnYSize C.int
+func (p *Dataset) GetOverviewCount() int {
 	pBand := C.GDALGetRasterBand(p.poDataset, 1)
+	v := C.GDALGetOverviewCount(pBand)
+	return int(v)
+}
+
+func (p *Dataset) GetOverviewSize(idxOverview int) (width, height int) {
+	if idx := idxOverview; idx >= 0 || idx < p.GetOverviewCount() {
+		pBand := C.GDALGetRasterBand(p.poDataset, C.int(1))
+		pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
+		cx := C.GDALGetRasterBandXSize(pBand)
+		cy := C.GDALGetRasterBandYSize(pBand)
+		return int(cx), int(cy)
+	}
+	return p.Width, p.Height
+}
+
+func (p *Dataset) GetBlockSize(idxOverview int) (xSize, ySize int) {
+	pBand := C.GDALGetRasterBand(p.poDataset, C.int(1))
+	if idx := idxOverview; idx >= 0 || idx < p.GetOverviewCount() {
+		pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
+	}
+
+	var pnXSize, pnYSize C.int
+	pBand = C.GDALGetRasterBand(p.poDataset, 1)
 	C.GDALGetBlockSize(pBand, &pnXSize, &pnYSize)
-	xSize, ySize = int(pnXSize), int(pnYSize)
-	return
+	return int(pnXSize), int(pnYSize)
 }
 
 func (p *Dataset) ReadBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
-	xSize, ySize := p.GetBlockSize()
+	xSize, ySize := p.GetBlockSize(idxOverview)
 	length := xSize * ySize * p.Channels * SizeofKind(p.DataType)
 
 	if len(cbuf.CData()) < length {
@@ -480,7 +516,9 @@ func (p *Dataset) ReadBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
-		pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
+		if idx := idxOverview; idx >= 0 || idx < p.GetOverviewCount() {
+			pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
+		}
 		cErr := C.GDALReadBlock(pBand, C.int(nXOff), C.int(nYOff),
 			unsafe.Pointer(&cbuf.CData()[nBandId*SizeofKind(p.DataType)]),
 		)
@@ -492,7 +530,7 @@ func (p *Dataset) ReadBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
 }
 
 func (p *Dataset) WriteBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
-	xSize, ySize := p.GetBlockSize()
+	xSize, ySize := p.GetBlockSize(idxOverview)
 	length := xSize * ySize * p.Channels * SizeofKind(p.DataType)
 
 	if len(cbuf.CData()) < length {
@@ -501,7 +539,9 @@ func (p *Dataset) WriteBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error 
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
-		pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
+		if idx := idxOverview; idx >= 0 || idx < p.GetOverviewCount() {
+			pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
+		}
 		cErr := C.GDALReadBlock(pBand, C.int(nXOff), C.int(nYOff),
 			unsafe.Pointer(&cbuf.CData()[nBandId*SizeofKind(p.DataType)]),
 		)

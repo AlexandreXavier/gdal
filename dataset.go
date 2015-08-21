@@ -313,8 +313,22 @@ func (p *Dataset) Close() error {
 	return nil
 }
 
-func (p *Dataset) ReadImage(r image.Rectangle) (m image.Image, err error) {
-	panic("TODO")
+func (p *Dataset) ReadImage(r image.Rectangle) (m *MemPImage, err error) {
+	cbuf := NewCBuffer(r.Dx() * r.Dy() * p.Channels * SizeofKind(p.DataType))
+	defer cbuf.Close()
+
+	if err = p.Read(r, cbuf.CData(), 0); err != nil {
+		return nil, err
+	}
+	m = &MemPImage{
+		XMemPMagic: MemPMagic,
+		XRect:      r,
+		XStride:    r.Dx() * p.Channels * SizeofKind(p.DataType),
+		XChannels:  p.Channels,
+		XDataType:  p.DataType,
+		XPix:       append([]byte{}, cbuf.CData()...),
+	}
+	return
 }
 
 func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
@@ -382,7 +396,7 @@ func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 	return nil
 }
 
-func (p *Dataset) WriteImage(m image.Image, sp image.Point) error {
+func (p *Dataset) WriteImage(r image.Rectangle, src image.Image, sp image.Point) error {
 	panic("TODO")
 }
 
@@ -512,8 +526,23 @@ func (p *Dataset) GetBlockSize(idxOverview int) (xSize, ySize int) {
 	return int(pnXSize), int(pnYSize)
 }
 
-func (p *Dataset) ReadBlockImage(idxOverview, nXOff, nYOff int) (m image.Image, err error) {
-	panic("TODO")
+func (p *Dataset) ReadBlockImage(idxOverview, nXOff, nYOff int) (m *MemPImage, err error) {
+	xSize, ySize := p.GetBlockSize(idxOverview)
+	cbuf := NewCBuffer(xSize * ySize * p.Channels * SizeofKind(p.DataType))
+	defer cbuf.Close()
+
+	if err = p.ReadBlock(idxOverview, nXOff, nYOff, cbuf); err != nil {
+		return nil, err
+	}
+	m = &MemPImage{
+		XMemPMagic: MemPMagic,
+		XRect:      image.Rect(0, 0, xSize, ySize),
+		XStride:    xSize * p.Channels * SizeofKind(p.DataType),
+		XChannels:  p.Channels,
+		XDataType:  p.DataType,
+		XPix:       append([]byte{}, cbuf.CData()...),
+	}
+	return
 }
 
 func (p *Dataset) ReadBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
@@ -539,10 +568,6 @@ func (p *Dataset) ReadBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
 		}
 	}
 	return nil
-}
-
-func (p *Dataset) WriteBlockImage(idxOverview, nXOff, nYOff int, m image.Image) error {
-	panic("TODO")
 }
 
 func (p *Dataset) WriteBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {

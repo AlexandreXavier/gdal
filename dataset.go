@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"image"
 	"reflect"
+	"strings"
 	"unsafe"
 )
 
@@ -25,14 +26,34 @@ const (
 type ResampleType int
 
 const (
-	ResampleType_Nil ResampleType = iota
-	ResampleType_Nearest
-	ResampleType_Gauss
-	ResampleType_Cubic
-	ResampleType_Average
-	ResampleType_Mode
-	ResampleType_AverageMagpase
+	ResampleType_Nil            ResampleType = iota // "NONE"
+	ResampleType_Nearest                            // "NEAREST"
+	ResampleType_Gauss                              // "GAUSS"
+	ResampleType_Cubic                              // "CUBIC"
+	ResampleType_Average                            // "AVERAGE"
+	ResampleType_Mode                               // "MODE"
+	ResampleType_AverageMagpase                     // "AVERAGE_MAGPHASE"
 )
+
+func NewResampleType(name string) ResampleType {
+	switch strings.ToUpper(name) {
+	case "NONE":
+		return ResampleType_Nil
+	case "NEAREST":
+		return ResampleType_Nearest
+	case "GAUSS":
+		return ResampleType_Gauss
+	case "CUBIC":
+		return ResampleType_Cubic
+	case "AVERAGE":
+		return ResampleType_Average
+	case "MODE":
+		return ResampleType_Mode
+	case "AVERAGE_MAGPHASE":
+		return ResampleType_AverageMagpase
+	}
+	return ResampleType_Nil
+}
 
 func (p ResampleType) Name() string {
 	switch p {

@@ -334,11 +334,11 @@ func (p *Dataset) Close() error {
 	return nil
 }
 
-func (p *Dataset) ReadImage(r image.Rectangle) (m *MemPImage, err error) {
+func (p *Dataset) ReadImage(level int, r image.Rectangle) (m *MemPImage, err error) {
 	cbuf := NewCBuffer(r.Dx() * r.Dy() * p.Channels * SizeofKind(p.DataType))
 	defer cbuf.Close()
 
-	if err = p.Read(r, cbuf.CData(), 0); err != nil {
+	if err = p.readLevel(level, r, cbuf.CData(), 0); err != nil {
 		return nil, err
 	}
 	m = &MemPImage{
@@ -353,6 +353,10 @@ func (p *Dataset) ReadImage(r image.Rectangle) (m *MemPImage, err error) {
 }
 
 func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
+	return p.readLevel(-1, r, data, stride)
+}
+
+func (p *Dataset) readLevel(idxOverview int, r image.Rectangle, data []byte, stride int) error {
 	pixelSize := SizeofPixel(p.Channels, p.DataType)
 	if stride == 0 {
 		stride = r.Dx() * pixelSize
@@ -377,6 +381,9 @@ func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
+		if idx := idxOverview; idx >= 0 && idx < p.GetOverviewCount() {
+			pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
+		}
 		cErr := C.GDALRasterIO(pBand, C.GF_Read,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
 			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),
@@ -417,7 +424,7 @@ func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 	return nil
 }
 
-func (p *Dataset) WriteImage(r image.Rectangle, src image.Image, sp image.Point) error {
+func (p *Dataset) WriteImage(level int, r image.Rectangle, src image.Image, sp image.Point) error {
 	panic("TODO")
 }
 
@@ -525,7 +532,7 @@ func (p *Dataset) GetOverviewCount() int {
 }
 
 func (p *Dataset) GetOverviewSize(idxOverview int) (width, height int) {
-	if idx := idxOverview; idx >= 0 || idx < p.GetOverviewCount() {
+	if idx := idxOverview; idx >= 0 && idx < p.GetOverviewCount() {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(1))
 		pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
 		cx := C.GDALGetRasterBandXSize(pBand)
@@ -537,7 +544,7 @@ func (p *Dataset) GetOverviewSize(idxOverview int) (width, height int) {
 
 func (p *Dataset) GetBlockSize(idxOverview int) (xSize, ySize int) {
 	pBand := C.GDALGetRasterBand(p.poDataset, C.int(1))
-	if idx := idxOverview; idx >= 0 || idx < p.GetOverviewCount() {
+	if idx := idxOverview; idx >= 0 && idx < p.GetOverviewCount() {
 		pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
 	}
 
@@ -578,7 +585,7 @@ func (p *Dataset) ReadBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error {
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
-		if idx := idxOverview; idx >= 0 || idx < p.GetOverviewCount() {
+		if idx := idxOverview; idx >= 0 && idx < p.GetOverviewCount() {
 			pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
 		}
 		cErr := C.GDALReadBlock(pBand, C.int(nXOff), C.int(nYOff),
@@ -601,7 +608,7 @@ func (p *Dataset) WriteBlock(idxOverview, nXOff, nYOff int, cbuf CBuffer) error 
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
-		if idx := idxOverview; idx >= 0 || idx < p.GetOverviewCount() {
+		if idx := idxOverview; idx >= 0 && idx < p.GetOverviewCount() {
 			pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
 		}
 		cErr := C.GDALReadBlock(pBand, C.int(nXOff), C.int(nYOff),

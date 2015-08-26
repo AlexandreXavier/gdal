@@ -362,7 +362,7 @@ func (p *Dataset) readLevel(idxOverview int, r image.Rectangle, data []byte, str
 		stride = r.Dx() * pixelSize
 	}
 	if n := r.Dx() * pixelSize; stride < n {
-		return fmt.Errorf("gdal: Read, bad stride: %d", stride)
+		return fmt.Errorf("gdal: readLevel, bad stride: %d", stride)
 	}
 
 	if n := stride * r.Dy(); p.cBufLen < n {
@@ -424,18 +424,27 @@ func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 	return nil
 }
 
-func (p *Dataset) WriteImage(level int, r image.Rectangle, src image.Image, sp image.Point) error {
-	panic("TODO")
+func (p *Dataset) WriteImage(level int, r image.Rectangle, src image.Image) error {
+	m, ok := AsMemPImage(src)
+	if !ok {
+		m = NewMemPImageFrom(src)
+	}
+	r = r.Intersect(m.Bounds())
+	return p.writeLevel(level, r, m.XPix, m.XStride)
 }
 
 func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
+	return p.writeLevel(-1, r, data, stride)
+}
+
+func (p *Dataset) writeLevel(idxOverview int, r image.Rectangle, data []byte, stride int) error {
 	pixelSize := SizeofPixel(p.Channels, p.DataType)
 
 	if stride == 0 {
 		stride = r.Dx() * pixelSize
 	}
 	if n := r.Dx() * pixelSize; stride < n {
-		return fmt.Errorf("gdal: Write, bad stride: %d", stride)
+		return fmt.Errorf("gdal: writeLevel, bad stride: %d", stride)
 	}
 
 	if n := stride * r.Dy(); p.cBufLen < n {
@@ -455,6 +464,9 @@ func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
+		if idx := idxOverview; idx >= 0 && idx < p.GetOverviewCount() {
+			pBand = C.GDALGetOverview(pBand, C.int(idxOverview))
+		}
 		cErr := C.GDALRasterIO(pBand, C.GF_Write,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
 			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),

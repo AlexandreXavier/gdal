@@ -216,18 +216,16 @@ func CreateDatasetBigtiff(filename string,
 	Projection string, Transform [6]float64,
 	resampleType ResampleType,
 ) (p *Dataset, err error) {
-	const tileSize = 256
+	const tileSize = 256 // must same as GDAL_TIFF_OVR_BLOCKSIZE=256
 	p, err = CreateDataset(filename, width, height, channels, dataType, &Options{
 		DriverName: "GTiff",
 		Projection: Projection,
 		Transform:  Transform,
 		ExtOptions: map[string]string{
-			"BIGTIFF": "IF_NEEDED",
-			"TILED":   "YES",
-			//"GDAL_TIFF_INTERNAL_MASK": "YES",
-			//"GDAL_TIFF_OVR_BLOCKSIZE": fmt.Sprintf(`"%d"`, tileSize),
-			//"BLOCKXSIZE":              fmt.Sprintf(`"%d"`, tileSize),
-			//"BLOCKYSIZE":              fmt.Sprintf(`"%d"`, tileSize),
+			"BIGTIFF":    "IF_NEEDED",
+			"TILED":      "YES",
+			"BLOCKXSIZE": fmt.Sprintf(`%d`, tileSize),
+			"BLOCKYSIZE": fmt.Sprintf(`%d`, tileSize),
 			"INTERLEAVE": "PIXEL",
 			"COMPRESS":   "NONE",
 		},

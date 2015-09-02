@@ -175,7 +175,7 @@ func CreateDataset(filename string, width, height, channels int, dataType reflec
 	optsList := make([]string, 0, len(p.Opt.ExtOptions))
 
 	for k, v := range p.Opt.ExtOptions {
-		optsList = append(optsList, k+":"+v)
+		optsList = append(optsList, k+"="+v)
 	}
 	for i := 0; i < len(optsList); i++ {
 		opts[i] = C.CString(optsList[i])
@@ -222,14 +222,14 @@ func CreateDatasetBigtiff(filename string,
 		Projection: Projection,
 		Transform:  Transform,
 		ExtOptions: map[string]string{
-			"BIGTIFF":                 "IF_NEEDED",
-			"TILED":                   "YES",
-			"GDAL_TIFF_INTERNAL_MASK": "YES",
-			"GDAL_TIFF_OVR_BLOCKSIZE": fmt.Sprintf(`"%d"`, tileSize),
-			"BLOCKXSIZE":              fmt.Sprintf(`"%d"`, tileSize),
-			"BLOCKYSIZE":              fmt.Sprintf(`"%d"`, tileSize),
-			"INTERLEAVE":              "PIXEL",
-			"COMPRESS":                "NONE",
+			"BIGTIFF": "IF_NEEDED",
+			"TILED":   "YES",
+			//"GDAL_TIFF_INTERNAL_MASK": "YES",
+			//"GDAL_TIFF_OVR_BLOCKSIZE": fmt.Sprintf(`"%d"`, tileSize),
+			//"BLOCKXSIZE":              fmt.Sprintf(`"%d"`, tileSize),
+			//"BLOCKYSIZE":              fmt.Sprintf(`"%d"`, tileSize),
+			"INTERLEAVE": "PIXEL",
+			"COMPRESS":   "NONE",
 		},
 	})
 	if err != nil {
@@ -246,10 +246,11 @@ func CreateDatasetBigtiff(filename string,
 
 	anOverviewList := make([]int, 30)
 	for i := 0; i < len(anOverviewList); i++ {
+		anOverviewList[i] = 1 << uint8(i+1)
 		if x := (tileSize << uint8(i)); x >= maxImageSize {
+			anOverviewList = anOverviewList[:i+1]
 			break
 		}
-		anOverviewList[i] = 1 << uint8(i+1)
 	}
 	if err := p.BuildOverviews(resampleType, anOverviewList); err != nil {
 		// log warning
@@ -525,6 +526,9 @@ func (p *Dataset) BuildOverviews(resampleType ResampleType, overviewList []int) 
 
 	nOverviews := len(overviewList)
 	panOverviewList := (*[1 << 30]C.int)(cptr)[:nOverviews:nOverviews]
+	for i := 0; i < len(panOverviewList); i++ {
+		panOverviewList[i] = C.int(overviewList[i])
+	}
 
 	cErr := C.GDALBuildOverviews(p.poDataset, pszResampling,
 		C.int(nOverviews), &panOverviewList[0],

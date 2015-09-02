@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"image"
 	"reflect"
+	"sort"
 	"strings"
 	"unsafe"
 )
@@ -245,11 +246,12 @@ func CreateDatasetBigtiff(filename string,
 	anOverviewList := make([]int, 30)
 	for i := 0; i < len(anOverviewList); i++ {
 		anOverviewList[i] = 1 << uint8(i+1)
-		if x := (tileSize << uint8(i)); x >= maxImageSize {
+		if x := (tileSize << uint8(i+1)); x >= maxImageSize {
 			anOverviewList = anOverviewList[:i+1]
 			break
 		}
 	}
+	sort.Sort(sort.Reverse(sort.IntSlice(anOverviewList)))
 	if err := p.BuildOverviews(resampleType, anOverviewList); err != nil {
 		// log warning
 	}
@@ -424,6 +426,7 @@ func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 }
 
 func (p *Dataset) WriteImage(level int, r image.Rectangle, src image.Image) error {
+	fmt.Printf("Dataset.WriteImage: r = %v\n", r)
 	m, ok := AsMemPImage(src)
 	if !ok {
 		m = NewMemPImageFrom(src)
@@ -473,7 +476,7 @@ func (p *Dataset) writeLevel(idxOverview int, r image.Rectangle, data []byte, st
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
-			return fmt.Errorf("gdal: Dataset.Write(%q) failed.", p.Filename)
+			return fmt.Errorf("gdal: Dataset.writeLevel(%q) failed.", p.Filename)
 		}
 	}
 
@@ -499,7 +502,7 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
-			return fmt.Errorf("gdal: Dataset.Write(%q) failed.", p.Filename)
+			return fmt.Errorf("gdal: Dataset.WriteFromCBuf(%q) failed.", p.Filename)
 		}
 	}
 	return nil

@@ -11,6 +11,7 @@ import "C"
 import (
 	"fmt"
 	"image"
+	"log"
 	"reflect"
 	"strings"
 	"unsafe"
@@ -93,10 +94,9 @@ type Dataset struct {
 	DataType reflect.Kind
 	Opt      *Options
 
-	poDataset    C.GDALDatasetH
-	hasOverviews *bool
-	cBuf         *C.uint8_t
-	cBufLen      int
+	poDataset C.GDALDatasetH
+	cBuf      *C.uint8_t
+	cBufLen   int
 }
 
 func OpenDataset(filename string, flag Access) (p *Dataset, err error) {
@@ -202,10 +202,10 @@ func CreateDataset(filename string, width, height, channels int, dataType reflec
 		padfTransform[i] = C.double(p.Opt.Transform[i])
 	}
 	if C.GDALSetProjection(p.poDataset, cProjName) != C.CE_None {
-		// log warning
+		log.Printf("gdal: GDALSetProjection(%q, %s) failed!\n", filename, cProjName)
 	}
 	if C.GDALSetGeoTransform(p.poDataset, &padfTransform[0]) != C.CE_None {
-		// log warning
+		log.Printf("gdal: GDALSetGeoTransform(%q, %v) failed!\n", filename, padfTransform)
 	}
 
 	return
@@ -289,14 +289,14 @@ func (p *Dataset) Close() error {
 }
 
 func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
-	return p.readByScale(1, r, data, stride)
+	return p.readWithSize(r, r.Dx(), r.Dy(), data, stride)
 }
 
 func (p *Dataset) ReadImage(r image.Rectangle) (m *MemPImage, err error) {
 	cbuf := NewCBuffer(r.Dx() * r.Dy() * p.Channels * SizeofKind(p.DataType))
 	defer cbuf.Close()
 
-	if err = p.readByScale(1, r, cbuf.CData(), 0); err != nil {
+	if err = p.readWithSize(r, r.Dx(), r.Dy(), cbuf.CData(), 0); err != nil {
 		return nil, err
 	}
 	m = &MemPImage{
@@ -310,17 +310,17 @@ func (p *Dataset) ReadImage(r image.Rectangle) (m *MemPImage, err error) {
 	return
 }
 
-func (p *Dataset) ReadImageByScale(scale float32, r image.Rectangle) (m *MemPImage, err error) {
-	cbuf := NewCBuffer(r.Dx() * r.Dy() * p.Channels * SizeofKind(p.DataType))
+func (p *Dataset) ReadImageWithSize(r image.Rectangle, size image.Point) (m *MemPImage, err error) {
+	cbuf := NewCBuffer(size.X * size.Y * p.Channels * SizeofKind(p.DataType))
 	defer cbuf.Close()
 
-	if err = p.readByScale(scale, r, cbuf.CData(), 0); err != nil {
+	if err = p.readWithSize(r, size.X, size.Y, cbuf.CData(), 0); err != nil {
 		return nil, err
 	}
 	m = &MemPImage{
 		XMemPMagic: MemPMagic,
-		XRect:      r,
-		XStride:    r.Dx() * p.Channels * SizeofKind(p.DataType),
+		XRect:      image.Rect(0, 0, size.X, size.Y),
+		XStride:    size.X * p.Channels * SizeofKind(p.DataType),
 		XChannels:  p.Channels,
 		XDataType:  p.DataType,
 		XPix:       append([]byte{}, cbuf.CData()...),
@@ -328,16 +328,17 @@ func (p *Dataset) ReadImageByScale(scale float32, r image.Rectangle) (m *MemPIma
 	return
 }
 
-func (p *Dataset) readByScale(scale float32, r image.Rectangle, data []byte, stride int) error {
+func (p *Dataset) readWithSize(r image.Rectangle, nBufXSize, nBufYSize int, data []byte, stride int) error {
 	pixelSize := SizeofPixel(p.Channels, p.DataType)
+
 	if stride == 0 {
-		stride = r.Dx() * pixelSize
+		stride = nBufXSize * pixelSize
 	}
-	if n := r.Dx() * pixelSize; stride < n {
-		return fmt.Errorf("gdal: read, bad stride: %d", stride)
+	if n := nBufXSize * pixelSize; stride < n {
+		return fmt.Errorf("gdal: Dataset(%q).read, bad stride: %d", p.Filename, stride)
 	}
 
-	if n := stride * r.Dy(); p.cBufLen < n {
+	if n := stride * nBufYSize; p.cBufLen < n {
 		p.cBufLen = n
 		if p.cBuf != nil {
 			C.free(unsafe.Pointer(p.cBuf))
@@ -348,19 +349,19 @@ func (p *Dataset) readByScale(scale float32, r image.Rectangle, data []byte, str
 		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
 	}
 
-	data = data[:r.Dy()*stride]
+	data = data[:nBufYSize*stride]
 	cBuf := ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)]
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
 		cErr := C.GDALRasterIO(pBand, C.GF_Read,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),
+			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(nBufXSize), C.int(nBufYSize),
 			gdalDataType(p.DataType), C.int(pixelSize),
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
-			return fmt.Errorf("gdal: Dataset.read(%q) failed.", p.Filename)
+			return fmt.Errorf("gdal: Dataset(%q).read failed.", p.Filename)
 		}
 	}
 
@@ -375,7 +376,7 @@ func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 		stride = r.Dx() * pixelSize
 	}
 	if n := r.Dx() * pixelSize; stride < n {
-		return fmt.Errorf("gdal: ReadToCBuf, bad stride: %d", stride)
+		return fmt.Errorf("gdal: Dataset(%q).ReadToCBuf, bad stride: %d", p.Filename, stride)
 	}
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
@@ -387,7 +388,7 @@ func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
-			return fmt.Errorf("gdal: Dataset.Read(%q) failed.", p.Filename)
+			return fmt.Errorf("gdal: Dataset(%q).Read failed.", p.Filename)
 		}
 	}
 	return nil
@@ -413,7 +414,7 @@ func (p *Dataset) write(r image.Rectangle, data []byte, stride int) error {
 		stride = r.Dx() * pixelSize
 	}
 	if n := r.Dx() * pixelSize; stride < n {
-		return fmt.Errorf("gdal: writeLevel, bad stride: %d", stride)
+		return fmt.Errorf("gdal: Dataset(%q).writeLevel, bad stride: %d", p.Filename, stride)
 	}
 
 	if n := stride * r.Dy(); p.cBufLen < n {
@@ -440,7 +441,7 @@ func (p *Dataset) write(r image.Rectangle, data []byte, stride int) error {
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
-			return fmt.Errorf("gdal: Dataset.writeLevel(%q) failed.", p.Filename)
+			return fmt.Errorf("gdal: Dataset(%q).writeLevel failed.", p.Filename)
 		}
 	}
 
@@ -454,7 +455,7 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 		stride = r.Dx() * pixelSize
 	}
 	if n := r.Dx() * pixelSize; stride < n {
-		return fmt.Errorf("gdal: WriteFromCBuf, bad stride: %d", stride)
+		return fmt.Errorf("gdal: Dataset(%q).WriteFromCBuf, bad stride: %d", p.Filename, stride)
 	}
 
 	for nBandId := 0; nBandId < p.Channels; nBandId++ {
@@ -466,43 +467,42 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
-			return fmt.Errorf("gdal: Dataset.WriteFromCBuf(%q) failed.", p.Filename)
+			return fmt.Errorf("gdal: Dataset(%q).WriteFromCBuf failed.", p.Filename)
 		}
 	}
 	return nil
 }
 
-func (p *Dataset) HasOverviews() bool {
-	if p.hasOverviews == nil {
-		pBand := C.GDALGetRasterBand(p.poDataset, 1)
-		v := C.GDALHasArbitraryOverviews(pBand)
-		p.setHasOverviews(int(v) != 0)
-	}
-	return *p.hasOverviews
-}
-
-func (p *Dataset) setHasOverviews(v bool) {
-	p.hasOverviews = new(bool)
-	*p.hasOverviews = v
-}
-
 func (p *Dataset) BuildOverviewsIfNotExists(resampleType ResampleType) error {
-	if !p.HasOverviews() {
-		if overviewList := p.getOverviewList(); len(overviewList) > 0 {
-			if err := p.buildOverviews(resampleType, overviewList); err != nil {
-				p.setHasOverviews(false)
-				return err
-			} else {
-				p.setHasOverviews(true)
-				return nil
-			}
+	if p.Width <= 256 && p.Height <= 256 {
+		return nil
+	}
+	pBand := C.GDALGetRasterBand(p.poDataset, 1)
+	if C.GDALGetOverviewCount(pBand) > 0 {
+		return nil
+	}
+	if overviewList := p.getOverviewList(); len(overviewList) > 0 {
+		if err := p.buildOverviews(resampleType, overviewList); err != nil {
+			return err
+		} else {
+			return nil
 		}
 	}
 	return nil
 }
 
 func (p *Dataset) BuildOverviews(resampleType ResampleType) error {
-	return p.buildOverviews(resampleType, p.getOverviewList())
+	if p.Width <= 256 && p.Height <= 256 {
+		return nil
+	}
+	if overviewList := p.getOverviewList(); len(overviewList) > 0 {
+		if err := p.buildOverviews(resampleType, overviewList); err != nil {
+			return err
+		} else {
+			return nil
+		}
+	}
+	return nil
 }
 
 func (p *Dataset) buildOverviews(resampleType ResampleType, overviewList []int) error {
@@ -528,7 +528,7 @@ func (p *Dataset) buildOverviews(resampleType ResampleType, overviewList []int) 
 		nil, nil,
 	)
 	if cErr != C.CE_None {
-		return fmt.Errorf("gdal: Dataset.BuildOverviews(%q) failed.", p.Filename)
+		return fmt.Errorf("gdal: Dataset(%q).buildOverviews failed.", p.Filename)
 	}
 	return nil
 }

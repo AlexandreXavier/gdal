@@ -6,11 +6,9 @@ package gdal
 
 /*
 #include <gdal.h>
-#include <cpl_conv.h>
 
 void initGDAL() {
 	GDALAllRegister();
-	CPLSetConfigOption("GDAL_TIFF_OVR_BLOCKSIZE", "256");
 }
 */
 import "C"

@@ -140,6 +140,15 @@ func OpenDataset(filename string, flag Access) (p *Dataset, err error) {
 	return
 }
 
+func OpenDatasetWithOverviews(filename string, resampleType ResampleType) (p *Dataset, err error) {
+	p, err = OpenDataset(filename, GA_ReadOnly)
+	if err != nil {
+		return nil, err
+	}
+	p.BuildOverviewsIfNotExists(resampleType)
+	return p, nil
+}
+
 func CreateDataset(filename string, width, height, channels int, dataType reflect.Kind, opt *Options) (p *Dataset, err error) {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))

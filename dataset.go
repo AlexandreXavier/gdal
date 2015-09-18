@@ -140,10 +140,16 @@ func OpenDataset(filename string, flag Access) (p *Dataset, err error) {
 	return
 }
 
-func OpenDatasetWithOverviews(filename string, resampleType ResampleType) (p *Dataset, err error) {
-	p, err = OpenDataset(filename, GA_ReadOnly)
+func OpenDatasetWithOverviews(filename string, resampleType ResampleType, flag Access) (p *Dataset, err error) {
+	p, err = OpenDataset(filename, flag)
 	if err != nil {
 		return nil, err
+	}
+	if resampleType == ResampleType_Nil {
+		resampleType = ResampleType_Average
+		if p.Channels == 1 && (p.DataType == reflect.Float32 || p.DataType == reflect.Float64) {
+			resampleType = ResampleType_Nearest
+		}
 	}
 	p.BuildOverviewsIfNotExists(resampleType)
 	return p, nil

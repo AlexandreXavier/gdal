@@ -14,6 +14,7 @@ import (
 	"log"
 	"reflect"
 	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -94,6 +95,7 @@ type Dataset struct {
 	DataType reflect.Kind
 	Opt      *Options
 
+	mu        sync.Mutex
 	poDataset C.GDALDatasetH
 	cBuf      *C.uint8_t
 	cBufLen   int
@@ -227,6 +229,9 @@ func CreateDataset(filename string, width, height, channels int, dataType reflec
 }
 
 func CreateDatasetCopy(filename string, src *Dataset, opt *Options) (p *Dataset, err error) {
+	src.mu.Lock()
+	defer src.mu.Unlock()
+
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 
@@ -291,6 +296,9 @@ func CreateDatasetCopy(filename string, src *Dataset, opt *Options) (p *Dataset,
 }
 
 func (p *Dataset) Close() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if p.poDataset != nil {
 		C.GDALClose(p.poDataset)
 		p.poDataset = nil
@@ -304,10 +312,16 @@ func (p *Dataset) Close() error {
 }
 
 func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	return p.readWithSize(r, r.Dx(), r.Dy(), data, stride)
 }
 
 func (p *Dataset) ReadImage(r image.Rectangle) (m *MemPImage, err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	cbuf := NewCBuffer(r.Dx() * r.Dy() * p.Channels * SizeofKind(p.DataType))
 	defer cbuf.Close()
 
@@ -326,6 +340,9 @@ func (p *Dataset) ReadImage(r image.Rectangle) (m *MemPImage, err error) {
 }
 
 func (p *Dataset) ReadImageWithSize(r image.Rectangle, size image.Point) (m *MemPImage, err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	cbuf := NewCBuffer(size.X * size.Y * p.Channels * SizeofKind(p.DataType))
 	defer cbuf.Close()
 
@@ -385,6 +402,9 @@ func (p *Dataset) readWithSize(r image.Rectangle, nBufXSize, nBufYSize int, data
 }
 
 func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	pixelSize := SizeofPixel(p.Channels, p.DataType)
 
 	if stride == 0 {
@@ -410,10 +430,16 @@ func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 }
 
 func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	return p.write(r, data, stride)
 }
 
 func (p *Dataset) WriteImage(r image.Rectangle, src image.Image) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	m, ok := AsMemPImage(src)
 	if !ok {
 		m = NewMemPImageFrom(src)
@@ -464,6 +490,9 @@ func (p *Dataset) write(r image.Rectangle, data []byte, stride int) error {
 }
 
 func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	pixelSize := SizeofPixel(p.Channels, p.DataType)
 
 	if stride == 0 {
@@ -489,6 +518,9 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 }
 
 func (p *Dataset) BuildOverviewsIfNotExists(resampleType ResampleType) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if p.Width <= 256 && p.Height <= 256 {
 		return nil
 	}
@@ -507,6 +539,9 @@ func (p *Dataset) BuildOverviewsIfNotExists(resampleType ResampleType) error {
 }
 
 func (p *Dataset) BuildOverviews(resampleType ResampleType) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if p.Width <= 256 && p.Height <= 256 {
 		return nil
 	}
@@ -572,6 +607,9 @@ func (p *Dataset) getOverviewList() []int {
 }
 
 func (p *Dataset) Flush() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	C.GDALFlushCache(p.poDataset)
 	return nil
 }

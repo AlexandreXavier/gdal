@@ -307,7 +307,6 @@ func (p *Dataset) Close() error {
 		C.free(unsafe.Pointer(p.cBuf))
 		p.cBuf = nil
 	}
-	*p = Dataset{}
 	return nil
 }
 

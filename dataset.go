@@ -516,6 +516,14 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 	return nil
 }
 
+func (p *Dataset) HasOverviews() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	pBand := C.GDALGetRasterBand(p.poDataset, 1)
+	return C.GDALGetOverviewCount(pBand) > 0
+}
+
 func (p *Dataset) BuildOverviewsIfNotExists(resampleType ResampleType) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()

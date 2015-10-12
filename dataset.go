@@ -15,6 +15,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -99,6 +100,8 @@ type Dataset struct {
 	poDataset C.GDALDatasetH
 	cBuf      *C.uint8_t
 	cBufLen   int
+
+	buildOverviewsRunning uint32 // atomic.LoadUint32
 }
 
 func OpenDataset(filename string, flag Access) (p *Dataset, err error) {
@@ -517,6 +520,11 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 }
 
 func (p *Dataset) HasOverviews() bool {
+	// avoid p.mu.Lock() block!!!
+	if atomic.LoadUint32(&p.buildOverviewsRunning) != 0 {
+		return false
+	}
+
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -566,6 +574,10 @@ func (p *Dataset) buildOverviews(resampleType ResampleType, overviewList []int) 
 	if len(overviewList) == 0 {
 		return nil
 	}
+
+	// avoid p.mu.Lock() block!!!
+	atomic.StoreUint32(&p.buildOverviewsRunning, 0xFFFF)
+	defer func() { atomic.StoreUint32(&p.buildOverviewsRunning, 0) }()
 
 	pszResampling := C.CString(resampleType.Name())
 	defer C.free(unsafe.Pointer(pszResampling))

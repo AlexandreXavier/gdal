@@ -313,6 +313,29 @@ func (p *Dataset) Close() error {
 	return nil
 }
 
+func (p *Dataset) SetProjection(projName string) error {
+	cProjName := C.CString(projName)
+	defer C.free(unsafe.Pointer(cProjName))
+
+	if C.GDALSetProjection(p.poDataset, cProjName) != C.CE_None {
+		return fmt.Errorf("gdal: SetProjection(%q) failed.", projName)
+	}
+	p.Opt.Projection = projName
+	return nil
+}
+
+func (p *Dataset) SetGeoTransform(transform [6]float64) error {
+	var padfTransform [6]C.double
+	for i := 0; i < len(padfTransform); i++ {
+		padfTransform[i] = C.double(transform[i])
+	}
+	if C.GDALSetGeoTransform(p.poDataset, &padfTransform[0]) != C.CE_None {
+		return fmt.Errorf("gdal: SetGeoTransform(%v) failed.", transform)
+	}
+	p.Opt.Transform = transform
+	return nil
+}
+
 func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()

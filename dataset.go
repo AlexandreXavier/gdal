@@ -344,6 +344,30 @@ func (p *Dataset) SetGeoTransform(transform [6]float64) error {
 	return nil
 }
 
+func (p *Dataset) SetGeoTransformX0Y0DxDy(x0, y0, dx, dy float64) error {
+	transform := [6]float64{
+		x0, // adfGeoTransform[0] /* top left x */
+		dx, // adfGeoTransform[1] /* w-e pixel resolution */
+		0,  // adfGeoTransform[2] /* 0 */
+		y0, // adfGeoTransform[3] /* top left y */
+		0,  // adfGeoTransform[4] /* 0 */
+		dy, // adfGeoTransform[5] /* n-s pixel resolution (negative value) */
+	}
+	if transform == p.Opt.Transform {
+		return nil
+	}
+
+	var padfTransform [6]C.double
+	for i := 0; i < len(padfTransform); i++ {
+		padfTransform[i] = C.double(transform[i])
+	}
+	if C.GDALSetGeoTransform(p.poDataset, &padfTransform[0]) != C.CE_None {
+		return fmt.Errorf("gdal: SetGeoTransform(%v) failed.", transform)
+	}
+	p.Opt.Transform = transform
+	return nil
+}
+
 func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()

@@ -5,12 +5,22 @@
 package gdal_test
 
 import (
-	_ "fmt"
-	_ "time"
+	"fmt"
+	"log"
+
+	"github.com/chai2010/gdal"
 )
 
-// func ExampleDate() {
-// 	t := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
-// 	fmt.Printf("Go launched at %s\n", t.Local())
-// 	// Output: Go launched at 2009-11-10 15:00:00 -0800 PST
-// }
+func ExampleDataset_setTFW() {
+	po, err := gdal.OpenDataset("some.tiff", gdal.GA_Update)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer po.Close()
+
+	if err = po.SetGeoTransformX0Y0DxDy(0, 0, 1, 1); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Done")
+}

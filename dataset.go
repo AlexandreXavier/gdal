@@ -314,6 +314,10 @@ func (p *Dataset) Close() error {
 }
 
 func (p *Dataset) SetProjection(projName string) error {
+	if projName == p.Opt.Projection {
+		return nil
+	}
+
 	cProjName := C.CString(projName)
 	defer C.free(unsafe.Pointer(cProjName))
 
@@ -325,6 +329,10 @@ func (p *Dataset) SetProjection(projName string) error {
 }
 
 func (p *Dataset) SetGeoTransform(transform [6]float64) error {
+	if transform == p.Opt.Transform {
+		return nil
+	}
+
 	var padfTransform [6]C.double
 	for i := 0; i < len(padfTransform); i++ {
 		padfTransform[i] = C.double(transform[i])

@@ -417,6 +417,43 @@ func (p *Dataset) ReadImageWithSize(r image.Rectangle, size image.Point) (m *Mem
 	return
 }
 
+func (p *Dataset) ReadOverview(idxOverview int, r image.Rectangle) (m image.Image, err error) {
+	if !p.HasOverviews() {
+		err = fmt.Errorf("gdal: Dataset.ReadOverview: Busy, Building Overviews!")
+		return
+	}
+
+	if idxOverview < 0 {
+		err = fmt.Errorf("gdal: Dataset.ReadOverview: '%d' is invalid idxOverview!", idxOverview)
+		return
+	}
+
+	// real size at bottom level
+	x0 := r.Min.X << uint(idxOverview)
+	y0 := r.Min.Y << uint(idxOverview)
+	x1 := r.Max.X << uint(idxOverview)
+	y1 := r.Max.Y << uint(idxOverview)
+
+	// cut edge tile
+	if x1 > p.Width {
+		x1 = p.Width
+	}
+	if y1 > p.Height {
+		y1 = p.Height
+	}
+
+	// read rect with scale (try read overviews at first)
+	m, err = p.ReadImageWithSize(
+		image.Rect(x0, y0, x1, y1), image.Pt(x1-x0, y1-y0),
+	)
+	if err != nil {
+		return
+	}
+
+	// OK
+	return
+}
+
 func (p *Dataset) readWithSize(r image.Rectangle, nBufXSize, nBufYSize int, data []byte, stride int) error {
 	pixelSize := SizeofPixel(p.Channels, p.DataType)
 

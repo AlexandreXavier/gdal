@@ -152,13 +152,6 @@ func OpenDatasetWithOverviews(filename string, resampleType ResampleType, flag A
 		return nil, err
 	}
 
-	if resampleType == ResampleType_Nil {
-		resampleType = ResampleType_Average
-		if p.Channels == 1 && (p.DataType == reflect.Float32 || p.DataType == reflect.Float64) {
-			resampleType = ResampleType_Nearest
-		}
-	}
-
 	p.SetResampleType(resampleType)
 	p.BuildOverviewsIfNotExists()
 	return p, nil
@@ -686,6 +679,13 @@ func (p *Dataset) BuildOverviews() error {
 func (p *Dataset) buildOverviews(overviewList []int) error {
 	if len(overviewList) == 0 {
 		return nil
+	}
+
+	if p.resampleType == ResampleType_Nil {
+		p.resampleType = ResampleType_Average
+		if p.Channels == 1 && (p.DataType == reflect.Float32 || p.DataType == reflect.Float64) {
+			p.resampleType = ResampleType_Nearest
+		}
 	}
 
 	// avoid p.mu.Lock() block!!!

@@ -626,6 +626,10 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 }
 
 func (p *Dataset) HasOverviews() bool {
+	if p.Width <= 256 && p.Height <= 256 {
+		return true
+	}
+
 	// avoid p.mu.Lock() block!!!
 	if atomic.LoadUint32(&p.buildOverviewsRunning) != 0 {
 		return false

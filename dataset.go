@@ -96,10 +96,11 @@ type Dataset struct {
 	DataType reflect.Kind
 	Opt      *Options
 
-	mu        sync.Mutex
-	poDataset C.GDALDatasetH
-	cBuf      *C.uint8_t
-	cBufLen   int
+	mu           sync.Mutex
+	poDataset    C.GDALDatasetH
+	resampleType ResampleType
+	cBuf         *C.uint8_t
+	cBufLen      int
 
 	buildOverviewsRunning uint32 // atomic.LoadUint32
 }
@@ -150,13 +151,16 @@ func OpenDatasetWithOverviews(filename string, resampleType ResampleType, flag A
 	if err != nil {
 		return nil, err
 	}
+
 	if resampleType == ResampleType_Nil {
 		resampleType = ResampleType_Average
 		if p.Channels == 1 && (p.DataType == reflect.Float32 || p.DataType == reflect.Float64) {
 			resampleType = ResampleType_Nearest
 		}
 	}
-	p.BuildOverviewsIfNotExists(resampleType)
+
+	p.SetResampleType(resampleType)
+	p.BuildOverviewsIfNotExists()
 	return p, nil
 }
 
@@ -314,6 +318,9 @@ func (p *Dataset) Close() error {
 }
 
 func (p *Dataset) SetProjection(projName string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if projName == p.Opt.Projection {
 		return nil
 	}
@@ -329,6 +336,9 @@ func (p *Dataset) SetProjection(projName string) error {
 }
 
 func (p *Dataset) SetGeoTransform(transform [6]float64) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if transform == p.Opt.Transform {
 		return nil
 	}
@@ -345,6 +355,9 @@ func (p *Dataset) SetGeoTransform(transform [6]float64) error {
 }
 
 func (p *Dataset) SetGeoTransformX0Y0DxDy(x0, y0, dx, dy float64) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	transform := [6]float64{
 		x0, // adfGeoTransform[0] /* top left x */
 		dx, // adfGeoTransform[1] /* w-e pixel resolution */
@@ -365,6 +378,14 @@ func (p *Dataset) SetGeoTransformX0Y0DxDy(x0, y0, dx, dy float64) error {
 		return fmt.Errorf("gdal: SetGeoTransform(%v) failed.", transform)
 	}
 	p.Opt.Transform = transform
+	return nil
+}
+
+func (p *Dataset) SetResampleType(resampleType ResampleType) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.resampleType = resampleType
 	return nil
 }
 
@@ -624,7 +645,7 @@ func (p *Dataset) HasOverviews() bool {
 	return C.GDALGetOverviewCount(pBand) > 0
 }
 
-func (p *Dataset) BuildOverviewsIfNotExists(resampleType ResampleType) error {
+func (p *Dataset) BuildOverviewsIfNotExists() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -636,7 +657,7 @@ func (p *Dataset) BuildOverviewsIfNotExists(resampleType ResampleType) error {
 		return nil
 	}
 	if overviewList := p.getOverviewList(); len(overviewList) > 0 {
-		if err := p.buildOverviews(resampleType, overviewList); err != nil {
+		if err := p.buildOverviews(overviewList); err != nil {
 			return err
 		} else {
 			return nil
@@ -645,7 +666,7 @@ func (p *Dataset) BuildOverviewsIfNotExists(resampleType ResampleType) error {
 	return nil
 }
 
-func (p *Dataset) BuildOverviews(resampleType ResampleType) error {
+func (p *Dataset) BuildOverviews() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -653,7 +674,7 @@ func (p *Dataset) BuildOverviews(resampleType ResampleType) error {
 		return nil
 	}
 	if overviewList := p.getOverviewList(); len(overviewList) > 0 {
-		if err := p.buildOverviews(resampleType, overviewList); err != nil {
+		if err := p.buildOverviews(overviewList); err != nil {
 			return err
 		} else {
 			return nil
@@ -662,7 +683,7 @@ func (p *Dataset) BuildOverviews(resampleType ResampleType) error {
 	return nil
 }
 
-func (p *Dataset) buildOverviews(resampleType ResampleType, overviewList []int) error {
+func (p *Dataset) buildOverviews(overviewList []int) error {
 	if len(overviewList) == 0 {
 		return nil
 	}
@@ -671,7 +692,7 @@ func (p *Dataset) buildOverviews(resampleType ResampleType, overviewList []int) 
 	atomic.StoreUint32(&p.buildOverviewsRunning, 0xFFFF)
 	defer func() { atomic.StoreUint32(&p.buildOverviewsRunning, 0) }()
 
-	pszResampling := C.CString(resampleType.Name())
+	pszResampling := C.CString(p.resampleType.Name())
 	defer C.free(unsafe.Pointer(pszResampling))
 
 	cptr := C.malloc(C.size_t(len(overviewList) * 4))

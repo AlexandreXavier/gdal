@@ -516,6 +516,13 @@ func (p *Dataset) readWithSize(r image.Rectangle, nBufXSize, nBufYSize int, data
 	return nil
 }
 
+func (p *Dataset) ReadToBuf(r image.Rectangle, data []byte, stride int) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return p.readWithSize(r, r.Dx(), r.Dy(), data, stride)
+}
+
 func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()

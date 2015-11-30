@@ -33,7 +33,7 @@ func Save(filename string, m image.Image, opt *Options, cbuf ...CBuffer) (err er
 			return
 		}
 	} else {
-		if err = f.Write(p.XRect, p.XPix, p.XStride); err != nil {
+		if err = f.WriteFromBuf(p.XRect, p.XPix, p.XStride); err != nil {
 			return
 		}
 	}

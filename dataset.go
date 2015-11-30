@@ -543,14 +543,7 @@ func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 	return nil
 }
 
-func (p *Dataset) Write(r image.Rectangle, data []byte, stride int) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	return p.write(r, data, stride)
-}
-
-func (p *Dataset) WriteImage(r image.Rectangle, src image.Image) error {
+func (p *Dataset) Write(r image.Rectangle, src image.Image) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -601,6 +594,13 @@ func (p *Dataset) write(r image.Rectangle, data []byte, stride int) error {
 	}
 
 	return nil
+}
+
+func (p *Dataset) WriteFromBuf(r image.Rectangle, data []byte, stride int) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return p.write(r, data, stride)
 }
 
 func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) error {

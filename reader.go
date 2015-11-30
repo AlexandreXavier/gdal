@@ -39,7 +39,7 @@ func Load(filename string, cbuf ...CBuffer) (m image.Image, err error) {
 		}
 	} else {
 		p = NewMemPImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
-		if err = f.Read(p.XRect, p.XPix, p.XStride); err != nil {
+		if err = f.ReadToBuf(p.XRect, p.XPix, p.XStride); err != nil {
 			return
 		}
 	}
@@ -98,7 +98,7 @@ func LoadImage(filename string, cbuf ...CBuffer) (m *MemPImage, err error) {
 		}
 	} else {
 		m = NewMemPImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
-		if err = f.Read(m.XRect, m.XPix, m.XStride); err != nil {
+		if err = f.ReadToBuf(m.XRect, m.XPix, m.XStride); err != nil {
 			return
 		}
 	}

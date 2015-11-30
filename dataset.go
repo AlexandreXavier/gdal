@@ -389,13 +389,6 @@ func (p *Dataset) SetResampleType(resampleType ResampleType) error {
 	return nil
 }
 
-func (p *Dataset) Read(r image.Rectangle, data []byte, stride int) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	return p.readWithSize(r, r.Dx(), r.Dy(), data, stride)
-}
-
 func (p *Dataset) ReadImage(r image.Rectangle) (m *MemPImage, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()

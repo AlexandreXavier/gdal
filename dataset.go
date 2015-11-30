@@ -389,7 +389,7 @@ func (p *Dataset) SetResampleType(resampleType ResampleType) error {
 	return nil
 }
 
-func (p *Dataset) ReadImage(r image.Rectangle) (m *MemPImage, err error) {
+func (p *Dataset) Read(r image.Rectangle) (m image.Image, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -410,7 +410,7 @@ func (p *Dataset) ReadImage(r image.Rectangle) (m *MemPImage, err error) {
 	return
 }
 
-func (p *Dataset) ReadImageWithSize(r image.Rectangle, size image.Point) (m *MemPImage, err error) {
+func (p *Dataset) ReadToSize(r image.Rectangle, size image.Point) (m image.Image, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -457,7 +457,7 @@ func (p *Dataset) ReadOverview(idxOverview int, r image.Rectangle) (m image.Imag
 	}
 
 	// read rect with scale (try read overviews at first)
-	m, err = p.ReadImageWithSize(
+	m, err = p.ReadToSize(
 		image.Rect(x0, y0, x1, y1), image.Pt(r.Dx(), r.Dy()),
 	)
 	if err != nil {

@@ -444,7 +444,7 @@ func (p *Dataset) ReadOverview(idxOverview int, r image.Rectangle) (m image.Imag
 
 	// read rect with scale (try read overviews at first)
 	m, err = p.ReadImageWithSize(
-		image.Rect(x0, y0, x1, y1), image.Pt(x1-x0, y1-y0),
+		image.Rect(x0, y0, x1, y1), image.Pt(r.Dx(), r.Dy()),
 	)
 	if err != nil {
 		return

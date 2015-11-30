@@ -90,11 +90,12 @@ type Options struct {
 
 type Dataset struct {
 	Filename string
-	Width    int
-	Height   int
-	Channels int
-	DataType reflect.Kind
 	Opt      *Options
+
+	_Width    int
+	_Height   int
+	_Channels int
+	_DataType reflect.Kind
 
 	mu           sync.Mutex
 	poDataset    C.GDALDatasetH
@@ -127,10 +128,10 @@ func OpenDataset(filename string, flag Access) (p *Dataset, err error) {
 	}
 
 	p.Filename = filename
-	p.Width = int(C.GDALGetRasterXSize(p.poDataset))
-	p.Height = int(C.GDALGetRasterYSize(p.poDataset))
-	p.Channels = int(C.GDALGetRasterCount(p.poDataset))
-	p.DataType = goDataType(C.GDALGetRasterDataType(C.GDALGetRasterBand(p.poDataset, 1)))
+	p._Width = int(C.GDALGetRasterXSize(p.poDataset))
+	p._Height = int(C.GDALGetRasterYSize(p.poDataset))
+	p._Channels = int(C.GDALGetRasterCount(p.poDataset))
+	p._DataType = goDataType(C.GDALGetRasterDataType(C.GDALGetRasterBand(p.poDataset, 1)))
 
 	p.Opt.DriverName = C.GoString(C.GDALGetDriverShortName(C.GDALGetDatasetDriver(p.poDataset)))
 	p.Opt.Projection = C.GoString(C.GDALGetProjectionRef(p.poDataset))
@@ -162,12 +163,12 @@ func CreateDataset(filename string, width, height, channels int, dataType reflec
 	defer C.free(unsafe.Pointer(cname))
 
 	p = &Dataset{
-		Filename: filename,
-		Width:    width,
-		Height:   height,
-		Channels: channels,
-		DataType: dataType,
-		Opt:      new(Options),
+		Filename:  filename,
+		_Width:    width,
+		_Height:   height,
+		_Channels: channels,
+		_DataType: dataType,
+		Opt:       new(Options),
 	}
 
 	if opt != nil {
@@ -207,7 +208,7 @@ func CreateDataset(filename string, width, height, channels int, dataType reflec
 	}
 	p.poDataset = C.GDALCreate(poDriver, cname,
 		C.int(width), C.int(height), C.int(channels),
-		gdalDataType(p.DataType), (**C.char)(unsafe.Pointer(&opts[0])),
+		gdalDataType(p._DataType), (**C.char)(unsafe.Pointer(&opts[0])),
 	)
 	if p.poDataset == nil {
 		err = fmt.Errorf("gdal: CreateImage(%q) failed.", filename)
@@ -236,12 +237,12 @@ func CreateDatasetCopy(filename string, src *Dataset, opt *Options) (p *Dataset,
 	defer C.free(unsafe.Pointer(cname))
 
 	p = &Dataset{
-		Filename: filename,
-		Width:    src.Width,
-		Height:   src.Height,
-		Channels: src.Channels,
-		DataType: src.DataType,
-		Opt:      new(Options),
+		Filename:  filename,
+		_Width:    src._Width,
+		_Height:   src._Height,
+		_Channels: src._Channels,
+		_DataType: src._DataType,
+		Opt:       new(Options),
 	}
 
 	if opt != nil {
@@ -309,6 +310,11 @@ func (p *Dataset) Close() error {
 	}
 	return nil
 }
+
+func (p *Dataset) Width() int             { return p._Width }
+func (p *Dataset) Height() int            { return p._Height }
+func (p *Dataset) Channels() int          { return p._Channels }
+func (p *Dataset) DataType() reflect.Kind { return p._DataType }
 
 func (p *Dataset) SetProjection(projName string) error {
 	p.mu.Lock()
@@ -386,7 +392,7 @@ func (p *Dataset) Read(r image.Rectangle) (m image.Image, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	cbuf := NewCBuffer(r.Dx() * r.Dy() * p.Channels * SizeofKind(p.DataType))
+	cbuf := NewCBuffer(r.Dx() * r.Dy() * p._Channels * SizeofKind(p._DataType))
 	defer cbuf.Close()
 
 	if err = p.readWithSize(r, r.Dx(), r.Dy(), cbuf.CData(), 0); err != nil {
@@ -395,9 +401,9 @@ func (p *Dataset) Read(r image.Rectangle) (m image.Image, err error) {
 	m = &MemPImage{
 		XMemPMagic: MemPMagic,
 		XRect:      r,
-		XStride:    r.Dx() * p.Channels * SizeofKind(p.DataType),
-		XChannels:  p.Channels,
-		XDataType:  p.DataType,
+		XStride:    r.Dx() * p._Channels * SizeofKind(p._DataType),
+		XChannels:  p._Channels,
+		XDataType:  p._DataType,
 		XPix:       append([]byte{}, cbuf.CData()...),
 	}
 	return
@@ -407,7 +413,7 @@ func (p *Dataset) ReadToSize(r image.Rectangle, size image.Point) (m image.Image
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	cbuf := NewCBuffer(size.X * size.Y * p.Channels * SizeofKind(p.DataType))
+	cbuf := NewCBuffer(size.X * size.Y * p._Channels * SizeofKind(p._DataType))
 	defer cbuf.Close()
 
 	if err = p.readWithSize(r, size.X, size.Y, cbuf.CData(), 0); err != nil {
@@ -416,9 +422,9 @@ func (p *Dataset) ReadToSize(r image.Rectangle, size image.Point) (m image.Image
 	m = &MemPImage{
 		XMemPMagic: MemPMagic,
 		XRect:      image.Rect(0, 0, size.X, size.Y),
-		XStride:    size.X * p.Channels * SizeofKind(p.DataType),
-		XChannels:  p.Channels,
-		XDataType:  p.DataType,
+		XStride:    size.X * p._Channels * SizeofKind(p._DataType),
+		XChannels:  p._Channels,
+		XDataType:  p._DataType,
 		XPix:       append([]byte{}, cbuf.CData()...),
 	}
 	return
@@ -442,11 +448,11 @@ func (p *Dataset) ReadOverview(idxOverview int, r image.Rectangle) (m image.Imag
 	y1 := r.Max.Y << uint(idxOverview)
 
 	// cut edge tile
-	if x1 > p.Width {
-		x1 = p.Width
+	if x1 > p._Width {
+		x1 = p._Width
 	}
-	if y1 > p.Height {
-		y1 = p.Height
+	if y1 > p._Height {
+		y1 = p._Height
 	}
 
 	// read rect with scale (try read overviews at first)
@@ -462,7 +468,7 @@ func (p *Dataset) ReadOverview(idxOverview int, r image.Rectangle) (m image.Imag
 }
 
 func (p *Dataset) readWithSize(r image.Rectangle, nBufXSize, nBufYSize int, data []byte, stride int) error {
-	pixelSize := SizeofPixel(p.Channels, p.DataType)
+	pixelSize := SizeofPixel(p._Channels, p._DataType)
 
 	if stride == 0 {
 		stride = nBufXSize * pixelSize
@@ -485,12 +491,12 @@ func (p *Dataset) readWithSize(r image.Rectangle, nBufXSize, nBufYSize int, data
 	data = data[:nBufYSize*stride]
 	cBuf := ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)]
 
-	for nBandId := 0; nBandId < p.Channels; nBandId++ {
+	for nBandId := 0; nBandId < p._Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
 		cErr := C.GDALRasterIO(pBand, C.GF_Read,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(nBufXSize), C.int(nBufYSize),
-			gdalDataType(p.DataType), C.int(pixelSize),
+			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p._DataType)]), C.int(nBufXSize), C.int(nBufYSize),
+			gdalDataType(p._DataType), C.int(pixelSize),
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
@@ -513,7 +519,7 @@ func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	pixelSize := SizeofPixel(p.Channels, p.DataType)
+	pixelSize := SizeofPixel(p._Channels, p._DataType)
 
 	if stride == 0 {
 		stride = r.Dx() * pixelSize
@@ -522,12 +528,12 @@ func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
 		return fmt.Errorf("gdal: Dataset(%q).ReadToCBuf, bad stride: %d", p.Filename, stride)
 	}
 
-	for nBandId := 0; nBandId < p.Channels; nBandId++ {
+	for nBandId := 0; nBandId < p._Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
 		cErr := C.GDALRasterIO(pBand, C.GF_Read,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),
-			gdalDataType(p.DataType), C.int(pixelSize),
+			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p._DataType)]), C.int(r.Dx()), C.int(r.Dy()),
+			gdalDataType(p._DataType), C.int(pixelSize),
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
@@ -557,7 +563,7 @@ func (p *Dataset) WriteImage(r image.Rectangle, src image.Image) error {
 }
 
 func (p *Dataset) write(r image.Rectangle, data []byte, stride int) error {
-	pixelSize := SizeofPixel(p.Channels, p.DataType)
+	pixelSize := SizeofPixel(p._Channels, p._DataType)
 
 	if stride == 0 {
 		stride = r.Dx() * pixelSize
@@ -581,12 +587,12 @@ func (p *Dataset) write(r image.Rectangle, data []byte, stride int) error {
 	cBuf := ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)]
 	copy(cBuf, data)
 
-	for nBandId := 0; nBandId < p.Channels; nBandId++ {
+	for nBandId := 0; nBandId < p._Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
 		cErr := C.GDALRasterIO(pBand, C.GF_Write,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),
-			gdalDataType(p.DataType), C.int(pixelSize),
+			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p._DataType)]), C.int(r.Dx()), C.int(r.Dy()),
+			gdalDataType(p._DataType), C.int(pixelSize),
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
@@ -601,7 +607,7 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	pixelSize := SizeofPixel(p.Channels, p.DataType)
+	pixelSize := SizeofPixel(p._Channels, p._DataType)
 
 	if stride == 0 {
 		stride = r.Dx() * pixelSize
@@ -610,12 +616,12 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 		return fmt.Errorf("gdal: Dataset(%q).WriteFromCBuf, bad stride: %d", p.Filename, stride)
 	}
 
-	for nBandId := 0; nBandId < p.Channels; nBandId++ {
+	for nBandId := 0; nBandId < p._Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
 		cErr := C.GDALRasterIO(pBand, C.GF_Write,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p.DataType)]), C.int(r.Dx()), C.int(r.Dy()),
-			gdalDataType(p.DataType), C.int(pixelSize),
+			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p._DataType)]), C.int(r.Dx()), C.int(r.Dy()),
+			gdalDataType(p._DataType), C.int(pixelSize),
 			C.int(stride),
 		)
 		if cErr != C.CE_None {
@@ -626,7 +632,7 @@ func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) erro
 }
 
 func (p *Dataset) HasOverviews() bool {
-	if p.Width <= 256 && p.Height <= 256 {
+	if p._Width <= 256 && p._Height <= 256 {
 		return true
 	}
 
@@ -646,7 +652,7 @@ func (p *Dataset) BuildOverviewsIfNotExists() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if p.Width <= 256 && p.Height <= 256 {
+	if p._Width <= 256 && p._Height <= 256 {
 		return nil
 	}
 	pBand := C.GDALGetRasterBand(p.poDataset, 1)
@@ -667,7 +673,7 @@ func (p *Dataset) BuildOverviews() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if p.Width <= 256 && p.Height <= 256 {
+	if p._Width <= 256 && p._Height <= 256 {
 		return nil
 	}
 	if overviewList := p.getOverviewList(); len(overviewList) > 0 {
@@ -687,7 +693,7 @@ func (p *Dataset) buildOverviews(overviewList []int) error {
 
 	if p.resampleType == ResampleType_Nil {
 		p.resampleType = ResampleType_Average
-		if p.Channels == 1 && (p.DataType == reflect.Float32 || p.DataType == reflect.Float64) {
+		if p._Channels == 1 && (p._DataType == reflect.Float32 || p._DataType == reflect.Float64) {
 			p.resampleType = ResampleType_Nearest
 		}
 	}
@@ -723,9 +729,9 @@ func (p *Dataset) buildOverviews(overviewList []int) error {
 func (p *Dataset) getOverviewList() []int {
 	const tileSize = 256
 
-	maxImageSize := p.Width
-	if maxImageSize < p.Height {
-		maxImageSize = p.Height
+	maxImageSize := p._Width
+	if maxImageSize < p._Height {
+		maxImageSize = p._Height
 	}
 	if maxImageSize <= tileSize {
 		return nil

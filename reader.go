@@ -18,8 +18,8 @@ func LoadConfig(filename string) (config image.Config, err error) {
 	}
 	defer f.Close()
 
-	config.ColorModel = ColorModel(f.Channels, f.DataType)
-	config.Width, config.Height = f.Width, f.Height
+	config.ColorModel = ColorModel(f._Channels, f._DataType)
+	config.Width, config.Height = f._Width, f._Height
 	return
 }
 
@@ -33,12 +33,12 @@ func Load(filename string, cbuf ...CBuffer) (m image.Image, err error) {
 
 	var p *MemPImage = nil
 	if len(cbuf) > 0 && cbuf[0] != nil {
-		p = newCImage(cbuf[0], image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+		p = newCImage(cbuf[0], image.Rect(0, 0, f._Width, f._Height), f._Channels, f._DataType)
 		if err = f.ReadToCBuf(p.XRect, p.XPix, p.XStride); err != nil {
 			return
 		}
 	} else {
-		p = NewMemPImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+		p = NewMemPImage(image.Rect(0, 0, f._Width, f._Height), f._Channels, f._DataType)
 		if err = f.ReadToBuf(p.XRect, p.XPix, p.XStride); err != nil {
 			return
 		}
@@ -92,12 +92,12 @@ func LoadImage(filename string, cbuf ...CBuffer) (m *MemPImage, err error) {
 	defer f.Close()
 
 	if len(cbuf) > 0 && cbuf[0] != nil {
-		m = newCImage(cbuf[0], image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+		m = newCImage(cbuf[0], image.Rect(0, 0, f._Width, f._Height), f._Channels, f._DataType)
 		if err = f.ReadToCBuf(m.XRect, m.XPix, m.XStride); err != nil {
 			return
 		}
 	} else {
-		m = NewMemPImage(image.Rect(0, 0, f.Width, f.Height), f.Channels, f.DataType)
+		m = NewMemPImage(image.Rect(0, 0, f._Width, f._Height), f._Channels, f._DataType)
 		if err = f.ReadToBuf(m.XRect, m.XPix, m.XStride); err != nil {
 			return
 		}

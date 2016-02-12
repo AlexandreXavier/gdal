@@ -392,10 +392,8 @@ func (p *Dataset) Read(r image.Rectangle) (m image.Image, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	cbuf := NewCBuffer(r.Dx() * r.Dy() * p._Channels * SizeofKind(p._DataType))
-	defer cbuf.Close()
-
-	if err = p.readWithSize(r, r.Dx(), r.Dy(), cbuf.CData(), 0); err != nil {
+	pix := make([]byte, r.Dx()*r.Dy()*p._Channels*SizeofKind(p._DataType))
+	if err = p.readWithSize(r, r.Dx(), r.Dy(), pix, 0); err != nil {
 		return nil, err
 	}
 	m = &MemPImage{
@@ -404,7 +402,7 @@ func (p *Dataset) Read(r image.Rectangle) (m image.Image, err error) {
 		XStride:    r.Dx() * p._Channels * SizeofKind(p._DataType),
 		XChannels:  p._Channels,
 		XDataType:  p._DataType,
-		XPix:       append([]byte{}, cbuf.CData()...),
+		XPix:       pix,
 	}
 	return
 }
@@ -413,10 +411,8 @@ func (p *Dataset) ReadToSize(r image.Rectangle, size image.Point) (m image.Image
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	cbuf := NewCBuffer(size.X * size.Y * p._Channels * SizeofKind(p._DataType))
-	defer cbuf.Close()
-
-	if err = p.readWithSize(r, size.X, size.Y, cbuf.CData(), 0); err != nil {
+	pix := make([]byte, size.X*size.Y*p._Channels*SizeofKind(p._DataType))
+	if err = p.readWithSize(r, size.X, size.Y, pix, 0); err != nil {
 		return nil, err
 	}
 	m = &MemPImage{
@@ -425,7 +421,7 @@ func (p *Dataset) ReadToSize(r image.Rectangle, size image.Point) (m image.Image
 		XStride:    size.X * p._Channels * SizeofKind(p._DataType),
 		XChannels:  p._Channels,
 		XDataType:  p._DataType,
-		XPix:       append([]byte{}, cbuf.CData()...),
+		XPix:       pix,
 	}
 	return
 }

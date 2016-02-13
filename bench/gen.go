@@ -88,26 +88,12 @@ import (
 	_ "golang.org/x/image/tiff"
 )
 
-type CBuffer interface {
-	gdal.CBuffer
-}
-
 func tbLoadData(tb testing.TB, filename string) []byte {
 	data, err := ioutil.ReadFile("../testdata/" + filename)
 	if err != nil {
 		tb.Fatal(err)
 	}
 	return data
-}
-
-func tbLoadCData(tb testing.TB, filename string) CBuffer {
-	data, err := ioutil.ReadFile("../testdata/" + filename)
-	if err != nil {
-		tb.Fatal(err)
-	}
-	cbuf := gdal.NewCBuffer(len(data))
-	copy(cbuf.CData(), data)
-	return cbuf
 }
 
 `[1:], outputFilename)
@@ -118,19 +104,6 @@ func printTestCase(w io.Writer, filename string) {
 func BenchmarkLoad_{{.goodBaseName}}_gdal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		m, err := gdal.Load("../testdata/{{.filename}}")
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
-func BenchmarkLoad_{{.goodBaseName}}_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/{{.filename}}", cbuf)
 		if err != nil {
 			b.Fatal(err)
 		}

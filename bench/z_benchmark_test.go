@@ -19,10 +19,6 @@ import (
 	_ "golang.org/x/image/tiff"
 )
 
-type CBuffer interface {
-	gdal.CBuffer
-}
-
 func tbLoadData(tb testing.TB, filename string) []byte {
 	data, err := ioutil.ReadFile("../testdata/" + filename)
 	if err != nil {
@@ -31,32 +27,9 @@ func tbLoadData(tb testing.TB, filename string) []byte {
 	return data
 }
 
-func tbLoadCData(tb testing.TB, filename string) CBuffer {
-	data, err := ioutil.ReadFile("../testdata/" + filename)
-	if err != nil {
-		tb.Fatal(err)
-	}
-	cbuf := gdal.NewCBuffer(len(data))
-	copy(cbuf.CData(), data)
-	return cbuf
-}
-
 func BenchmarkLoad_empty8000x6000_png_gdal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		m, err := gdal.Load("../testdata/empty8000x6000.png")
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
-func BenchmarkLoad_empty8000x6000_png_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/empty8000x6000.png", cbuf)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -86,19 +59,6 @@ func BenchmarkLoad_lena512color_png_gdal(b *testing.B) {
 	}
 }
 
-func BenchmarkLoad_lena512color_png_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/lena512color.png", cbuf)
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
 func BenchmarkLoad_lena512color_png_std(b *testing.B) {
 	data := tbLoadData(b, "lena512color.png")
 	b.ResetTimer()
@@ -114,19 +74,6 @@ func BenchmarkLoad_lena512color_png_std(b *testing.B) {
 func BenchmarkLoad_lena512color_tiff_gdal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		m, err := gdal.Load("../testdata/lena512color.tiff")
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
-func BenchmarkLoad_lena512color_tiff_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/lena512color.tiff", cbuf)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -156,19 +103,6 @@ func BenchmarkLoad_video_001_16bit_tiff_gdal(b *testing.B) {
 	}
 }
 
-func BenchmarkLoad_video_001_16bit_tiff_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/video-001-16bit.tiff", cbuf)
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
 func BenchmarkLoad_video_001_16bit_tiff_std(b *testing.B) {
 	data := tbLoadData(b, "video-001-16bit.tiff")
 	b.ResetTimer()
@@ -184,19 +118,6 @@ func BenchmarkLoad_video_001_16bit_tiff_std(b *testing.B) {
 func BenchmarkLoad_video_001_gray_16bit_tiff_gdal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		m, err := gdal.Load("../testdata/video-001-gray-16bit.tiff")
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
-func BenchmarkLoad_video_001_gray_16bit_tiff_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/video-001-gray-16bit.tiff", cbuf)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -226,19 +147,6 @@ func BenchmarkLoad_video_001_gray_tiff_gdal(b *testing.B) {
 	}
 }
 
-func BenchmarkLoad_video_001_gray_tiff_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/video-001-gray.tiff", cbuf)
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
 func BenchmarkLoad_video_001_gray_tiff_std(b *testing.B) {
 	data := tbLoadData(b, "video-001-gray.tiff")
 	b.ResetTimer()
@@ -254,19 +162,6 @@ func BenchmarkLoad_video_001_gray_tiff_std(b *testing.B) {
 func BenchmarkLoad_video_001_paletted_tiff_gdal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		m, err := gdal.Load("../testdata/video-001-paletted.tiff")
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
-func BenchmarkLoad_video_001_paletted_tiff_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/video-001-paletted.tiff", cbuf)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -296,19 +191,6 @@ func BenchmarkLoad_video_001_strip_64_tiff_gdal(b *testing.B) {
 	}
 }
 
-func BenchmarkLoad_video_001_strip_64_tiff_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/video-001-strip-64.tiff", cbuf)
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
 func BenchmarkLoad_video_001_strip_64_tiff_std(b *testing.B) {
 	data := tbLoadData(b, "video-001-strip-64.tiff")
 	b.ResetTimer()
@@ -324,19 +206,6 @@ func BenchmarkLoad_video_001_strip_64_tiff_std(b *testing.B) {
 func BenchmarkLoad_video_001_tile_64x64_tiff_gdal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		m, err := gdal.Load("../testdata/video-001-tile-64x64.tiff")
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
-func BenchmarkLoad_video_001_tile_64x64_tiff_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/video-001-tile-64x64.tiff", cbuf)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -366,19 +235,6 @@ func BenchmarkLoad_video_001_uncompressed_tiff_gdal(b *testing.B) {
 	}
 }
 
-func BenchmarkLoad_video_001_uncompressed_tiff_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/video-001-uncompressed.tiff", cbuf)
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
 func BenchmarkLoad_video_001_uncompressed_tiff_std(b *testing.B) {
 	data := tbLoadData(b, "video-001-uncompressed.tiff")
 	b.ResetTimer()
@@ -394,19 +250,6 @@ func BenchmarkLoad_video_001_uncompressed_tiff_std(b *testing.B) {
 func BenchmarkLoad_video_001_bmp_gdal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		m, err := gdal.Load("../testdata/video-001.bmp")
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
-func BenchmarkLoad_video_001_bmp_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/video-001.bmp", cbuf)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -436,19 +279,6 @@ func BenchmarkLoad_video_001_jpeg_gdal(b *testing.B) {
 	}
 }
 
-func BenchmarkLoad_video_001_jpeg_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/video-001.jpeg", cbuf)
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
 func BenchmarkLoad_video_001_jpeg_std(b *testing.B) {
 	data := tbLoadData(b, "video-001.jpeg")
 	b.ResetTimer()
@@ -471,19 +301,6 @@ func BenchmarkLoad_video_001_png_gdal(b *testing.B) {
 	}
 }
 
-func BenchmarkLoad_video_001_png_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/video-001.png", cbuf)
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
 func BenchmarkLoad_video_001_png_std(b *testing.B) {
 	data := tbLoadData(b, "video-001.png")
 	b.ResetTimer()
@@ -499,19 +316,6 @@ func BenchmarkLoad_video_001_png_std(b *testing.B) {
 func BenchmarkLoad_video_001_tiff_gdal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		m, err := gdal.Load("../testdata/video-001.tiff")
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = m
-	}
-}
-
-func BenchmarkLoad_video_001_tiff_gdal_cbuf(b *testing.B) {
-	cbuf := gdal.NewCBuffer(0)
-	defer cbuf.Close()
-
-	for i := 0; i < b.N; i++ {
-		m, err := gdal.Load("../testdata/video-001.tiff", cbuf)
 		if err != nil {
 			b.Fatal(err)
 		}

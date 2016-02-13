@@ -473,25 +473,12 @@ func (p *Dataset) readWithSize(r image.Rectangle, nBufXSize, nBufYSize int, data
 		return fmt.Errorf("gdal: Dataset(%q).read, bad stride: %d", p.Filename, stride)
 	}
 
-	if n := stride * nBufYSize; p.cBufLen < n {
-		p.cBufLen = n
-		if p.cBuf != nil {
-			C.free(unsafe.Pointer(p.cBuf))
-			p.cBuf = nil
-		}
-	}
-	if p.cBuf == nil {
-		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
-	}
-
 	data = data[:nBufYSize*stride]
-	cBuf := ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)]
-
 	for nBandId := 0; nBandId < p._Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
 		cErr := C.GDALRasterIO(pBand, C.GF_Read,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p._DataType)]), C.int(nBufXSize), C.int(nBufYSize),
+			unsafe.Pointer(&data[nBandId*SizeofKind(p._DataType)]), C.int(nBufXSize), C.int(nBufYSize),
 			gdalDataType(p._DataType), C.int(pixelSize),
 			C.int(stride),
 		)
@@ -499,8 +486,6 @@ func (p *Dataset) readWithSize(r image.Rectangle, nBufXSize, nBufYSize int, data
 			return fmt.Errorf("gdal: Dataset(%q).read failed.", p.Filename)
 		}
 	}
-
-	copy(data, cBuf)
 	return nil
 }
 
@@ -509,34 +494,6 @@ func (p *Dataset) ReadToBuf(r image.Rectangle, data []byte, stride int) error {
 	defer p.mu.Unlock()
 
 	return p.readWithSize(r, r.Dx(), r.Dy(), data, stride)
-}
-
-func (p *Dataset) ReadToCBuf(r image.Rectangle, cBuf []byte, stride int) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	pixelSize := SizeofPixel(p._Channels, p._DataType)
-
-	if stride == 0 {
-		stride = r.Dx() * pixelSize
-	}
-	if n := r.Dx() * pixelSize; stride < n {
-		return fmt.Errorf("gdal: Dataset(%q).ReadToCBuf, bad stride: %d", p.Filename, stride)
-	}
-
-	for nBandId := 0; nBandId < p._Channels; nBandId++ {
-		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
-		cErr := C.GDALRasterIO(pBand, C.GF_Read,
-			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p._DataType)]), C.int(r.Dx()), C.int(r.Dy()),
-			gdalDataType(p._DataType), C.int(pixelSize),
-			C.int(stride),
-		)
-		if cErr != C.CE_None {
-			return fmt.Errorf("gdal: Dataset(%q).Read failed.", p.Filename)
-		}
-	}
-	return nil
 }
 
 func (p *Dataset) Write(r image.Rectangle, src image.Image) error {

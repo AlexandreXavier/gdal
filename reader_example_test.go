@@ -30,16 +30,3 @@ func ExampleLoad() {
 	// Output:
 	// Bounds = (0,0)-(150,103)
 }
-
-func ExampleLoad_cbuf() {
-	cbuf := NewCBuffer(8 << 20) // 8MB
-	defer cbuf.Close()
-
-	m, err := Load("./testdata/video-001.tiff", cbuf)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Bounds = %v\n", m.Bounds())
-	// Output:
-	// Bounds = (0,0)-(150,103)
-}

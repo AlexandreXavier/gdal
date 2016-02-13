@@ -89,20 +89,3 @@ func LoadImage(filename string, buffer ...[]byte) (m *MemPImage, err error) {
 	}
 	return
 }
-
-func newCImage(cbuf CBuffer, r image.Rectangle, channels int, dataType reflect.Kind) *MemPImage {
-	p := &MemPImage{
-		XMemPMagic: MemPMagic,
-		XRect:      r,
-		XStride:    r.Dx() * channels * SizeofKind(dataType),
-		XChannels:  channels,
-		XDataType:  dataType,
-	}
-	if n := r.Dy() * p.XStride; n > len(cbuf.CData()) {
-		if err := cbuf.Resize(n); err != nil {
-			panic(err)
-		}
-	}
-	p.XPix = cbuf.CData()
-	return p
-}

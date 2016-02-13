@@ -100,8 +100,6 @@ type Dataset struct {
 	mu           sync.Mutex
 	poDataset    C.GDALDatasetH
 	resampleType ResampleType
-	cBuf         *C.uint8_t
-	cBufLen      int
 
 	buildOverviewsRunning uint32 // atomic.LoadUint32
 }
@@ -303,10 +301,6 @@ func (p *Dataset) Close() error {
 	if p.poDataset != nil {
 		C.GDALClose(p.poDataset)
 		p.poDataset = nil
-	}
-	if p.cBuf != nil {
-		C.free(unsafe.Pointer(p.cBuf))
-		p.cBuf = nil
 	}
 	return nil
 }
@@ -518,26 +512,12 @@ func (p *Dataset) write(r image.Rectangle, data []byte, stride int) error {
 		return fmt.Errorf("gdal: Dataset(%q).writeLevel, bad stride: %d", p.Filename, stride)
 	}
 
-	if n := stride * r.Dy(); p.cBufLen < n {
-		p.cBufLen = n
-		if p.cBuf != nil {
-			C.free(unsafe.Pointer(p.cBuf))
-			p.cBuf = nil
-		}
-	}
-	if p.cBuf == nil {
-		p.cBuf = (*C.uint8_t)(C.malloc(C.size_t(p.cBufLen)))
-	}
-
 	data = data[:r.Dy()*stride]
-	cBuf := ((*[1 << 30]byte)(unsafe.Pointer(p.cBuf)))[0:len(data):len(data)]
-	copy(cBuf, data)
-
 	for nBandId := 0; nBandId < p._Channels; nBandId++ {
 		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
 		cErr := C.GDALRasterIO(pBand, C.GF_Write,
 			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p._DataType)]), C.int(r.Dx()), C.int(r.Dy()),
+			unsafe.Pointer(&data[nBandId*SizeofKind(p._DataType)]), C.int(r.Dx()), C.int(r.Dy()),
 			gdalDataType(p._DataType), C.int(pixelSize),
 			C.int(stride),
 		)
@@ -554,34 +534,6 @@ func (p *Dataset) WriteFromBuf(r image.Rectangle, data []byte, stride int) error
 	defer p.mu.Unlock()
 
 	return p.write(r, data, stride)
-}
-
-func (p *Dataset) WriteFromCBuf(r image.Rectangle, cBuf []byte, stride int) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	pixelSize := SizeofPixel(p._Channels, p._DataType)
-
-	if stride == 0 {
-		stride = r.Dx() * pixelSize
-	}
-	if n := r.Dx() * pixelSize; stride < n {
-		return fmt.Errorf("gdal: Dataset(%q).WriteFromCBuf, bad stride: %d", p.Filename, stride)
-	}
-
-	for nBandId := 0; nBandId < p._Channels; nBandId++ {
-		pBand := C.GDALGetRasterBand(p.poDataset, C.int(nBandId+1))
-		cErr := C.GDALRasterIO(pBand, C.GF_Write,
-			C.int(r.Min.X), C.int(r.Min.Y), C.int(r.Dx()), C.int(r.Dy()),
-			unsafe.Pointer(&cBuf[nBandId*SizeofKind(p._DataType)]), C.int(r.Dx()), C.int(r.Dy()),
-			gdalDataType(p._DataType), C.int(pixelSize),
-			C.int(stride),
-		)
-		if cErr != C.CE_None {
-			return fmt.Errorf("gdal: Dataset(%q).WriteFromCBuf failed.", p.Filename)
-		}
-	}
-	return nil
 }
 
 func (p *Dataset) HasOverviews() bool {

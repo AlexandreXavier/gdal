@@ -552,6 +552,9 @@ func (p *Dataset) HasOverviews() bool {
 	pBand := C.GDALGetRasterBand(p.poDataset, 1)
 	return C.GDALGetOverviewCount(pBand) > 0
 }
+func (p *Dataset) BuildOverviewsIsRunning() bool {
+	return atomic.LoadUint32(&p.buildOverviewsRunning) != 0
+}
 
 func (p *Dataset) BuildOverviewsIfNotExists() error {
 	p.mu.Lock()

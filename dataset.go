@@ -81,6 +81,14 @@ func (p ResampleType) Name() string {
 // GDAL Raster Formats
 //
 // See http://www.gdal.org/formats_list.html
+//
+//	Transform[0] /* top left x */
+//	Transform[1] /* w-e pixel resolution */
+//	Transform[2] /* 0 */
+//	Transform[3] /* top left y */
+//	Transform[4] /* 0 */
+//	Transform[5] /* n-s pixel resolution (negative value) */
+//
 type Options struct {
 	DriverName string
 	Projection string

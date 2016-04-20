@@ -447,11 +447,11 @@ func (p *Dataset) ReadOverview(idxOverview int, r image.Rectangle) (m image.Imag
 
 	// cut edge tile
 	if x1 > p._Width {
-		r.Max.X = r.Min.X + int(float64(r.Dx())*float64(p._Width-r.Min.X)/float64(x1-x0))
+		r.Max.X = r.Min.X + int(float64(r.Dx())*float64(p._Width-x0)/float64(x1-x0))
 		x1 = p._Width
 	}
 	if y1 > p._Height {
-		r.Max.Y = r.Min.Y + int(float64(r.Dy())*float64(p._Height-r.Min.Y)/float64(y1-y0))
+		r.Max.Y = r.Min.Y + int(float64(r.Dy())*float64(p._Height-y0)/float64(y1-y0))
 		y1 = p._Height
 	}
 

@@ -479,9 +479,9 @@ func (p *Dataset) readWithSize(r image.Rectangle, nBufXSize, nBufYSize int, data
 
 	if r.Empty() {
 		for y := 0; y < nBufYSize; y++ {
-			d := data[y*stride:]
-			for x := 0; x < nBufXSize*pixelSize; x++ {
-				d[x] = 0
+			line := data[y*stride:][:nBufXSize*pixelSize]
+			for i, _ := range line {
+				line[i] = 0
 			}
 		}
 		return nil

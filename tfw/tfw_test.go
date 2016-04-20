@@ -7,7 +7,7 @@ package tfw_test
 import (
 	"testing"
 
-	tfw "."
+	tfw "github.com/chai2010/gdal/tfw"
 )
 
 func TestTFW_Load(t *testing.T) {

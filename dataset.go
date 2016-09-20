@@ -429,13 +429,13 @@ func (p *Dataset) ReadToSize(r image.Rectangle, size image.Point) (m image.Image
 }
 
 func (p *Dataset) ReadOverview(idxOverview int, r image.Rectangle) (m image.Image, err error) {
-	if !p.HasOverviews() {
-		err = fmt.Errorf("gdal: Dataset.ReadOverview: Busy, Building Overviews!")
+	if idxOverview < 0 {
+		err = fmt.Errorf("gdal: Dataset.ReadOverview: '%d' is invalid idxOverview!", idxOverview)
 		return
 	}
 
-	if idxOverview < 0 {
-		err = fmt.Errorf("gdal: Dataset.ReadOverview: '%d' is invalid idxOverview!", idxOverview)
+	if idxOverview > 0 && !p.HasOverviews() {
+		err = fmt.Errorf("gdal: Dataset.ReadOverview: Busy, Building Overviews!")
 		return
 	}
 

@@ -66,4 +66,4 @@ Report bugs to <chaishushan@gmail.com>.
 
 Thanks!
 */
-package gdal
+package gdal // import "github.com/chai2010/gdal"
